@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../App';
 import { MockDB } from '../services/mockDatabase';
-import { TimeRecord, ScheduleItem } from '../types';
+import { TimeRecord } from '../types';
 import { Button } from '../components/ui/Button';
-import { Camera, ShieldCheck, PlayCircle, StopCircle, Upload, Check, MapPin } from 'lucide-react';
+import { Camera, ShieldCheck, PlayCircle, StopCircle, Check, MapPin } from 'lucide-react';
 
 export const CheckIn: React.FC = () => {
   const { user } = useAuth();

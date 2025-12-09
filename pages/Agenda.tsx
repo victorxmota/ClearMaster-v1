@@ -4,7 +4,7 @@ import { MockDB } from '../services/mockDatabase';
 import { ScheduleItem, UserRole, User, Office, OfficeScheduleConfig } from '../types';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Plus, Trash2, Calendar, Clock, MapPin, Building2, Save, X, CheckSquare, Square } from 'lucide-react';
+import { Trash2, Calendar, Clock, MapPin, Building2, Save, X, CheckSquare, Square } from 'lucide-react';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
