@@ -1,15 +1,16 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { User, UserRole } from './types';
-import { Database } from './services/database';
-import { auth, logoutFirebase } from './services/firebase';
+import { User, UserRole } from './types.ts';
+import { Database } from './services/database.ts';
+import { auth, logoutFirebase } from './services/firebase.ts';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Layout } from './components/Layout';
-import { Login } from './pages/Login';
-import { Agenda } from './pages/Agenda';
-import { CheckIn } from './pages/CheckIn';
-import { Reports } from './pages/Reports';
-import { Profile } from './pages/Profile';
+import { Layout } from './components/Layout.tsx';
+import { Login } from './pages/Login.tsx';
+import { Agenda } from './pages/Agenda.tsx';
+import { CheckIn } from './pages/CheckIn.tsx';
+import { Reports } from './pages/Reports.tsx';
+import { Profile } from './pages/Profile.tsx';
 import { ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 
 interface AuthContextType {
@@ -32,7 +33,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-brand-600 w-12 h-12" />
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Loading Security Session...</p>
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Security Check...</p>
         </div>
       </div>
     );
@@ -67,8 +68,8 @@ const App: React.FC = () => {
           setUser(appUser);
           setInitError(null);
         } catch (error: any) {
-          console.error("Failed to sync user", error);
-          setInitError("Error syncing data with cloud. Check console.");
+          console.error("Sync error:", error);
+          setInitError("Sync failed. Check connection.");
         }
       } else {
         setUser(null);
@@ -86,11 +87,11 @@ const App: React.FC = () => {
 
   if (!auth) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 text-center">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border border-red-100">
-            <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-800 mb-2 tracking-tighter">Firebase Error</h1>
-            <p className="text-gray-600">The connection to the authentication server could not be established. Please check your config.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100 text-center">
+          <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
+          <h1 className="text-xl font-black text-gray-900 mb-2">System Offline</h1>
+          <p className="text-gray-500">Firebase configuration missing or invalid.</p>
         </div>
       </div>
     );
@@ -99,8 +100,8 @@ const App: React.FC = () => {
   return (
     <AuthContext.Provider value={{ user, logout, isAuthenticated: !!user, isLoading }}>
       {initError && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-sm font-bold animate-bounce">
-          <AlertCircle size={18} />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-xs font-black animate-bounce">
+          <AlertCircle size={16} />
           {initError}
         </div>
       )}

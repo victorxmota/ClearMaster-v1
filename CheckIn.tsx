@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../App';
-import { Database } from '../services/database';
-import { TimeRecord, SafetyChecklist, ScheduleItem } from '../types';
-import { Button } from '../components/ui/Button';
+
+import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { useAuth } from '../App.tsx';
+import { Database } from '../services/database.ts';
+import { TimeRecord, SafetyChecklist, ScheduleItem } from '../types.ts';
+import { Button } from '../components/ui/Button.tsx';
 import { 
-  Camera, 
   ShieldCheck, 
   PlayCircle, 
   StopCircle, 
@@ -19,38 +19,20 @@ import {
   Ear,
   ScanEye,
   Construction,
-  Strikethrough
+  Strikethrough,
+  Camera
 } from 'lucide-react';
 
 const INITIAL_CHECKLIST: SafetyChecklist = {
-  highVis: false,
-  helmet: false,
-  goggles: false,
-  gloves: false,
-  mask: false,
-  earMuffs: false,
-  faceGuard: false,
-  harness: false,
-  boots: false,
-  knowSafeJob: false,
-  weatherCheck: false,
-  safePassInDate: false,
-  slipTripAware: false,
-  wetFloorsCleaned: false,
-  manualHandlingCert: false,
-  heavyLiftingAssistance: false,
-  anchorPointsTie: false,
-  ladderFooted: false,
-  safetySigns: false,
-  commWithOthers: false,
-  ladderCheck: false,
-  sharpEdgesCheck: false,
-  scraperBladeCovers: false,
-  hotSurfacesCheck: false,
-  chemicalCourseComplete: false,
-  chemicalDilutionAware: false,
-  equipmentTidy: false,
-  laddersPutAway: false
+  highVis: false, helmet: false, goggles: false, gloves: false, mask: false,
+  earMuffs: false, faceGuard: false, harness: false, boots: false,
+  knowSafeJob: false, weatherCheck: false, safePassInDate: false,
+  slipTripAware: false, wetFloorsCleaned: false, manualHandlingCert: false,
+  heavyLiftingAssistance: false, anchorPointsTie: false, ladderFooted: false,
+  safetySigns: false, commWithOthers: false, ladderCheck: false,
+  sharpEdgesCheck: false, scraperBladeCovers: false, hotSurfacesCheck: false,
+  chemicalCourseComplete: false, chemicalDilutionAware: false,
+  equipmentTidy: false, laddersPutAway: false
 };
 
 export const CheckIn: React.FC = () => {
@@ -58,16 +40,13 @@ export const CheckIn: React.FC = () => {
   const [activeSession, setActiveSession] = useState<TimeRecord | null>(null);
   const [locationName, setLocationName] = useState('');
   const [availableLocations, setAvailableLocations] = useState<{name: string, address: string}[]>([]);
-  
   const [isProcessing, setIsProcessing] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [endPhotoPreview, setEndPhotoPreview] = useState<string | null>(null);
   const [endPhotoFile, setEndPhotoFile] = useState<File | null>(null);
-
   const [checklist, setChecklist] = useState<SafetyChecklist>(INITIAL_CHECKLIST);
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerRef = useRef<number | null>(null);
@@ -80,25 +59,17 @@ export const CheckIn: React.FC = () => {
         if (session) {
           setActiveSession(session);
           setLocationName(session.locationName);
-          // Safely merge existing session checklist with INITIAL to avoid missing fields error
           setChecklist({ ...INITIAL_CHECKLIST, ...session.safetyChecklist });
           setPhotoPreview(session.photoUrl || null);
         }
-
         const schedules: ScheduleItem[] = await Database.getSchedulesByUser(user.id);
         const uniqueLocs = new Map<string, string>();
         schedules.forEach((s: ScheduleItem) => {
-          if (!uniqueLocs.has(s.locationName)) {
-            uniqueLocs.set(s.locationName, s.address);
-          }
+          if (!uniqueLocs.has(s.locationName)) uniqueLocs.set(s.locationName, s.address);
         });
-        
-        setAvailableLocations(Array.from(uniqueLocs.entries()).map(([name, address]) => ({
-          name,
-          address
-        })));
+        setAvailableLocations(Array.from(uniqueLocs.entries()).map(([name, address]) => ({ name, address })));
       } catch (e) {
-        console.error("Error initializing check-in", e);
+        console.error(e);
       } finally {
         setInitializing(false);
       }
@@ -127,97 +98,47 @@ export const CheckIn: React.FC = () => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>, isEnd: boolean) => {
+  const handlePhotoSelect = (e: ChangeEvent<HTMLInputElement>, isEnd: boolean) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (isEnd) {
-          setEndPhotoPreview(reader.result as string);
-          setEndPhotoFile(file);
-        } else {
-          setPhotoPreview(reader.result as string);
-          setPhotoFile(file);
-        }
+        if (isEnd) { setEndPhotoPreview(reader.result as string); setEndPhotoFile(file); }
+        else { setPhotoPreview(reader.result as string); setPhotoFile(file); }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const getCurrentLocation = (): Promise<{lat: number, lng: number} | null> => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        resolve(null);
-        return;
-      }
-      const safetyTimeout = setTimeout(() => resolve(null), 7000);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          clearTimeout(safetyTimeout);
-          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        () => {
-          clearTimeout(safetyTimeout);
-          resolve(null);
-        },
-        { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 }
-      );
-    });
-  };
-
   const handleStartShift = async () => {
-    if (!user || !locationName) {
-      alert("Please select a location.");
-      return;
-    }
-
+    if (!user || !locationName) { alert("Select location."); return; }
     setIsProcessing(true);
-    setErrorMsg(null);
-    
     try {
-        const location = await getCurrentLocation();
-        const recordData: Omit<TimeRecord, 'id'> = {
-          userId: user.id,
-          locationName,
-          startTime: new Date().toISOString(),
-          date: new Date().toISOString().split('T')[0],
-          safetyChecklist: checklist,
-          startLocation: location || undefined
-        };
-
-        const newRecord = await Database.startShift(recordData as any, photoFile || undefined);
-        setActiveSession(newRecord);
+      const recordData: any = {
+        userId: user.id,
+        locationName,
+        startTime: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0],
+        safetyChecklist: checklist
+      };
+      const newRecord = await Database.startShift(recordData, photoFile || undefined);
+      setActiveSession(newRecord);
     } catch (error: any) {
-        console.error(error);
-        setErrorMsg("Failed to start shift. Cloud storage error.");
-    } finally {
-        setIsProcessing(false);
-    }
+      setErrorMsg("Failed to start.");
+    } finally { setIsProcessing(false); }
   };
 
   const handleEndShift = async () => {
     if (!activeSession) return;
     setIsProcessing(true);
     try {
-      const location = await getCurrentLocation();
-      await Database.endShift(activeSession.id, {
-        endTime: new Date().toISOString(),
-        endLocation: location || undefined
-      }, endPhotoFile || undefined);
-      
+      await Database.endShift(activeSession.id, { endTime: new Date().toISOString() }, endPhotoFile || undefined);
       setActiveSession(null);
-      setPhotoPreview(null);
-      setPhotoFile(null);
-      setEndPhotoPreview(null);
-      setEndPhotoFile(null);
       setLocationName('');
       setChecklist(INITIAL_CHECKLIST);
     } catch (error: any) {
-      console.error(error);
-      setErrorMsg("Failed to finalize shift.");
-    } finally {
-      setIsProcessing(false);
-    }
+      setErrorMsg("Failed to end.");
+    } finally { setIsProcessing(false); }
   };
 
   const toggleCheck = (key: keyof SafetyChecklist) => {
@@ -230,15 +151,10 @@ export const CheckIn: React.FC = () => {
     <button
       onClick={() => toggleCheck(id)}
       disabled={!!activeSession}
-      className={`
-        flex items-center justify-between p-3 rounded-lg border-2 transition-all text-left group
-        ${checklist[id] 
-          ? 'border-green-500 bg-green-50 text-green-700 shadow-sm' 
-          : 'border-gray-200 text-gray-500 hover:border-brand-200 hover:bg-brand-50/30'}
-      `}
+      className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left ${checklist[id] ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'}`}
     >
-      <span className="text-xs font-bold leading-tight uppercase pr-2">{label}</span>
-      {checklist[id] ? <Check size={16} className="flex-shrink-0" /> : <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0 group-hover:border-brand-400" />}
+      <span className="text-[10px] font-black uppercase leading-tight">{label}</span>
+      {checklist[id] ? <Check size={14} /> : <div className="w-3 h-3 rounded border border-gray-200" />}
     </button>
   );
 
@@ -246,199 +162,73 @@ export const CheckIn: React.FC = () => {
     <button
       onClick={() => toggleCheck(id)}
       disabled={!!activeSession}
-      className={`
-        flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all aspect-square
-        ${checklist[id] 
-          ? 'border-brand-600 bg-brand-50 text-brand-600 shadow-inner' 
-          : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-brand-200'}
-      `}
+      className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all aspect-square ${checklist[id] ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-gray-50 bg-gray-50/50 text-gray-300'}`}
     >
-      <Icon size={24} className="mb-2" />
-      <span className="text-[9px] font-black uppercase text-center leading-none">{label}</span>
+      <Icon size={20} className="mb-1" />
+      <span className="text-[8px] font-black uppercase text-center leading-none">{label}</span>
     </button>
   );
 
-  if (initializing) return <div className="flex flex-col items-center justify-center p-20 text-gray-400"><Loader2 className="animate-spin mb-4" /> Validating existing sessions...</div>;
+  if (initializing) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-brand-600" /></div>;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <header className="flex items-center justify-between">
-        <h2 className="text-3xl font-black text-gray-900 flex items-center gap-3 tracking-tighter">
-          <ShieldCheck className="text-brand-600 w-8 h-8" />
-          Shift Clock
-        </h2>
-      </header>
+      <h2 className="text-3xl font-black text-gray-900 flex items-center gap-3 uppercase tracking-tighter">
+        <ShieldCheck className="text-brand-600" size={32} /> Shift Clock
+      </h2>
 
-      {errorMsg && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3 animate-shake">
-          <AlertCircle className="flex-shrink-0" />
-          <p className="text-sm font-bold">{errorMsg}</p>
-        </div>
-      )}
-
-      {/* SAFETY CHECKLIST CONTAINER */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="p-6 bg-brand-900 text-white">
-          <h3 className="font-black text-xl uppercase tracking-widest">Pre-Shift Safety Check</h3>
-          <p className="text-brand-300 text-[10px] font-bold mt-1 uppercase tracking-tighter">SITE COMPLIANCE & PERSONAL PROTECTIVE EQUIPMENT</p>
+          <h3 className="font-black text-lg uppercase tracking-widest">Safety Compliance</h3>
+          <p className="text-brand-300 text-[10px] font-black uppercase">REQUIRED PPE & PROTOCOLS</p>
         </div>
-
         <div className="p-6 space-y-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-black text-xs">01</span>
-              <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">PPE Checklist</h4>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
-              <PPECARD id="highVis" label="High Vis" icon={Construction} />
-              <PPECARD id="helmet" label="Helmet" icon={HardHat} />
-              <PPECARD id="goggles" label="Goggles" icon={Glasses} />
-              <PPECARD id="gloves" label="Gloves" icon={HandMetal} />
-              <PPECARD id="mask" label="Mask" icon={Wind} />
-              <PPECARD id="earMuffs" label="Ear Muffs" icon={Ear} />
-              <PPECARD id="faceGuard" label="Face Guard" icon={ScanEye} />
-              <PPECARD id="harness" label="Harness" icon={Strikethrough} />
-              <PPECARD id="boots" label="Boots" icon={Construction} />
-            </div>
+          <div className="grid grid-cols-5 md:grid-cols-9 gap-2">
+            <PPECARD id="highVis" label="Vest" icon={Construction} />
+            <PPECARD id="helmet" label="Helmet" icon={HardHat} />
+            <PPECARD id="goggles" label="Goggles" icon={Glasses} />
+            <PPECARD id="gloves" label="Gloves" icon={HandMetal} />
+            <PPECARD id="mask" label="Mask" icon={Wind} />
+            <PPECARD id="earMuffs" label="Ears" icon={Ear} />
+            <PPECARD id="faceGuard" label="Face" icon={ScanEye} />
+            <PPECARD id="harness" label="Harness" icon={Strikethrough} />
+            <PPECARD id="boots" label="Boots" icon={Construction} />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">02</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Safety Protocol</h4>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="knowSafeJob" label="Ready to work safely?" />
-                <CheckItem id="weatherCheck" label="Weather check done?" />
-                <CheckItem id="safePassInDate" label="Safe Pass validated?" />
-                <CheckItem id="slipTripAware" label="Slip/Trip awareness?" />
-                <CheckItem id="wetFloorsCleaned" label="Wet floors handled?" />
-              </div>
-
-              <div className="flex items-center gap-2 mt-6">
-                <span className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-xs">03</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Lifting & Manual</h4>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="manualHandlingCert" label="Manual Handling valid?" />
-                <CheckItem id="heavyLiftingAssistance" label="Help available for heavy?" />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">04</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Heights & Signs</h4>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="anchorPointsTie" label="Anchors checked?" />
-                <CheckItem id="ladderFooted" label="Ladder support present?" />
-                <CheckItem id="safetySigns" label="Signage placed?" />
-                <CheckItem id="commWithOthers" label="Site comms active?" />
-              </div>
-
-              <div className="flex items-center gap-2 mt-6">
-                <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-black text-xs">05</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Equipment Check</h4>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="ladderCheck" label="Ladders inspected?" />
-                <CheckItem id="sharpEdgesCheck" label="Sharp edges check?" />
-                <CheckItem id="scraperBladeCovers" label="Scraper covers on?" />
-                <CheckItem id="hotSurfacesCheck" label="Hot surfaces check?" />
-                <CheckItem id="chemicalCourseComplete" label="Chemical Course OK?" />
-                <CheckItem id="chemicalDilutionAware" label="Dilution rates understood?" />
-                <CheckItem id="equipmentTidy" label="Area kept tidy?" />
-                <CheckItem id="laddersPutAway" label="Post-work storage done?" />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {Object.keys(INITIAL_CHECKLIST).slice(9).map((key) => (
+               <CheckItem key={key} id={key as keyof SafetyChecklist} label={key.replace(/([A-Z])/g, ' $1')} />
+             ))}
           </div>
         </div>
       </div>
 
-      {!activeSession && (
-        <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 space-y-6">
-          <div>
-            <label className="block text-[10px] font-black text-brand-600 mb-2 uppercase tracking-widest">Selected Location</label>
-            <div className="relative">
-              <select
-                className="w-full rounded-xl border-gray-200 p-4 appearance-none bg-gray-50 border font-black text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all text-lg"
-                value={locationName}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLocationName(e.target.value)}
-              >
-                <option value="">-- Choose Assigned Location --</option>
-                {availableLocations.map((loc, idx) => (
-                  <option key={idx} value={loc.name}>{loc.name} ({loc.address})</option>
-                ))}
-              </select>
-              <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-600 pointer-events-none" size={24} />
-            </div>
-          </div>
-          
+      {!activeSession ? (
+        <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 space-y-6">
+          <select
+            className="w-full rounded-2xl border-gray-100 p-5 bg-gray-50 font-black text-gray-900 appearance-none uppercase text-xs tracking-widest"
+            value={locationName}
+            onChange={(e) => setLocationName(e.target.value)}
+          >
+            <option value="">-- Select Location --</option>
+            {availableLocations.map((loc, i) => <option key={i} value={loc.name}>{loc.name}</option>)}
+          </select>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="flex flex-col space-y-2">
-                <label className="block text-[10px] font-black text-brand-600 uppercase tracking-widest">Arrival Proof (Optional)</label>
-                <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-gray-200 border-dashed rounded-2xl cursor-pointer bg-gray-50 hover:bg-white hover:border-brand-400 transition-all group overflow-hidden">
-                    {photoPreview ? (
-                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <div className="w-10 h-10 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <Camera className="w-5 h-5" />
-                            </div>
-                            <p className="text-[10px] text-gray-500 font-black uppercase tracking-tight">Capture Arrival</p>
-                        </div>
-                    )}
-                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePhotoSelect(e, false)} />
-                </label>
-             </div>
-
-             <div className="flex flex-col justify-end">
-                <Button 
-                    onClick={handleStartShift} 
-                    size="lg" 
-                    className="w-full h-44 text-2xl font-black bg-brand-600 text-white hover:bg-brand-700 border-none shadow-2xl flex flex-col items-center justify-center gap-2 rounded-2xl"
-                    disabled={isProcessing}
-                >
-                    {isProcessing ? <Loader2 className="animate-spin" size={48} /> : (
-                        <>
-                            <PlayCircle size={48} />
-                            <span className="uppercase tracking-tighter">Clock In</span>
-                        </>
-                    )}
-                </Button>
-             </div>
+            <label className="flex flex-col items-center justify-center h-44 border-2 border-dashed border-gray-200 rounded-3xl cursor-pointer bg-gray-50 hover:bg-white transition-all overflow-hidden group">
+               {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" /> : <div className="text-center text-gray-400"><Camera className="mx-auto mb-2 group-hover:scale-110 transition-transform" /><p className="text-[10px] font-black uppercase">Site Photo</p></div>}
+               <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, false)} />
+            </label>
+            <Button onClick={handleStartShift} className="h-44 rounded-3xl text-2xl font-black uppercase tracking-tighter shadow-2xl bg-brand-600 hover:bg-brand-700">
+               <PlayCircle className="mr-3" size={32} /> Clock In
+            </Button>
           </div>
         </div>
-      )}
-
-      {activeSession && (
-        <div className="bg-green-600 p-10 rounded-3xl text-center shadow-2xl space-y-8 animate-fade-in border-4 border-green-500/50">
-           <div className="space-y-2">
-              <p className="text-green-100 font-black uppercase text-xs tracking-[0.2em]">Active Shift • {activeSession.locationName}</p>
-              <div className="text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-lg">{formatTime(elapsedTime)}</div>
-           </div>
-           
-           <div className="max-w-md mx-auto grid grid-cols-1 gap-4">
-              <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/20 text-left">
-                  <label className="block text-[10px] font-black uppercase text-white/70 mb-2 tracking-widest">Departure Proof (Optional)</label>
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-white/30 border-dashed rounded-xl cursor-pointer hover:bg-white/10 transition-colors group overflow-hidden">
-                    {endPhotoPreview ? <img src={endPhotoPreview} alt="Preview" className="w-full h-full object-cover" /> : <Camera className="w-8 h-8 text-white/50 group-hover:scale-110 transition-transform" />}
-                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePhotoSelect(e, true)} />
-                  </label>
-              </div>
-
-              <Button 
-                  onClick={handleEndShift} 
-                  variant="danger" 
-                  className="w-full h-20 text-xl font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 border-none bg-red-600 hover:bg-red-700 text-white"
-                  disabled={isProcessing}
-              >
-                  {isProcessing ? <Loader2 className="animate-spin" /> : <StopCircle size={28} className="text-white" />} 
-                  <span className="uppercase tracking-tighter">Finish and Clock Out</span>
-              </Button>
-           </div>
+      ) : (
+        <div className="bg-green-600 p-10 rounded-[3rem] text-center shadow-2xl animate-fade-in border-8 border-green-500/50">
+           <p className="text-green-100 font-black uppercase text-xs tracking-widest mb-4">Shift in Progress • {activeSession.locationName}</p>
+           <div className="text-8xl font-black text-white tracking-tighter mb-8 tabular-nums">{formatTime(elapsedTime)}</div>
+           <Button onClick={handleEndShift} className="w-full h-24 rounded-3xl text-xl font-black uppercase bg-red-600 hover:bg-red-700 text-white shadow-2xl">
+              <StopCircle className="mr-3" /> Finish Shift
+           </Button>
         </div>
       )}
     </div>
