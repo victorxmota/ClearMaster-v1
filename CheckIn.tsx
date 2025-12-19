@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../App';
-import { Database } from '../services/database.ts';
-import { TimeRecord, SafetyChecklist } from '../types';
+import { Database } from '../services/database';
+import { TimeRecord, SafetyChecklist, ScheduleItem } from '../types';
 import { Button } from '../components/ui/Button';
 import { 
   Camera, 
@@ -84,9 +84,9 @@ export const CheckIn: React.FC = () => {
           setPhotoPreview(session.photoUrl || null);
         }
 
-        const schedules = await Database.getSchedulesByUser(user.id);
+        const schedules: ScheduleItem[] = await Database.getSchedulesByUser(user.id);
         const uniqueLocs = new Map();
-        schedules.forEach(s => {
+        schedules.forEach((s: ScheduleItem) => {
           if (!uniqueLocs.has(s.locationName)) {
             uniqueLocs.set(s.locationName, s.address);
           }
@@ -94,7 +94,7 @@ export const CheckIn: React.FC = () => {
         
         setAvailableLocations(Array.from(uniqueLocs.entries()).map(([name, address]) => ({
           name,
-          address
+          address: address as string
         })));
       } catch (e) {
         console.error("Error initializing check-in", e);
@@ -302,7 +302,6 @@ export const CheckIn: React.FC = () => {
             </div>
           </div>
 
-          {/* SAFETY PLAN */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
@@ -358,7 +357,6 @@ export const CheckIn: React.FC = () => {
         </div>
       </div>
 
-      {/* SHIFT ACTIONS */}
       {!activeSession && (
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 space-y-6">
           <div>
@@ -379,6 +377,23 @@ export const CheckIn: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="flex flex-col space-y-4">
+                <label className="block text-[10px] font-black text-brand-600 mb-2 uppercase tracking-widest">Arrival Photo (Optional)</label>
+                <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-gray-200 border-dashed rounded-2xl cursor-pointer bg-gray-50 hover:bg-white hover:border-brand-400 transition-all group overflow-hidden">
+                    {photoPreview ? (
+                        <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <Camera className="w-6 h-6" />
+                            </div>
+                            <p className="text-xs text-gray-500 font-bold uppercase tracking-tight">Capture site arrival</p>
+                        </div>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, false)} />
+                </label>
+             </div>
+
              <div className="flex flex-col justify-end">
                 <Button 
                     onClick={handleStartShift} 
@@ -406,6 +421,14 @@ export const CheckIn: React.FC = () => {
            </div>
            
            <div className="max-w-md mx-auto grid grid-cols-1 gap-4">
+              <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/20 text-left">
+                  <label className="block text-[10px] font-black uppercase text-white/70 mb-2 tracking-widest">End of Shift Photo (Optional)</label>
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-white/30 border-dashed rounded-xl cursor-pointer hover:bg-white/10 transition-colors group overflow-hidden">
+                    {endPhotoPreview ? <img src={endPhotoPreview} alt="Preview" className="w-full h-full object-cover" /> : <Camera className="w-8 h-8 text-white/50 group-hover:scale-110 transition-transform" />}
+                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, true)} />
+                  </label>
+              </div>
+
               <Button 
                   onClick={handleEndShift} 
                   variant="danger" 

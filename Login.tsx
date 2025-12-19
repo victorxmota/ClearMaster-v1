@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase.ts';
+import { signInWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { LogIn, UserPlus, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
+import { LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { useAuth } from '../App';
 
 export const Login: React.FC = () => {
@@ -13,12 +13,11 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  // Se já estiver logado, redireciona
+  // If already authenticated, redirect
   if (isAuthenticated) {
     navigate('/');
   }
 
-  // Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

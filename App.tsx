@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { User, UserRole } from './types';
-import { Database } from './services/database.ts';
-import { auth, logoutFirebase } from './services/firebase.ts';
+import { Database } from './services/database';
+import { auth, logoutFirebase } from './services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -23,7 +23,6 @@ const AuthContext = createContext<AuthContextType>(null!);
 
 export const useAuth = () => useContext(AuthContext);
 
-// Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode, allowedRoles?: UserRole[] }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
