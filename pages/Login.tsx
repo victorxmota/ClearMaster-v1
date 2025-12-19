@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '../App';
 
 export const Login: React.FC = () => {

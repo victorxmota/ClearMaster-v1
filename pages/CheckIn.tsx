@@ -9,9 +9,7 @@ import {
   PlayCircle, 
   StopCircle, 
   Check, 
-  MapPin, 
   Loader2, 
-  AlertCircle,
   HardHat,
   Glasses,
   HandMetal,
@@ -40,12 +38,10 @@ export const CheckIn: React.FC = () => {
   const [activeSession, setActiveSession] = useState<TimeRecord | null>(null);
   const [locationName, setLocationName] = useState('');
   const [availableLocations, setAvailableLocations] = useState<{name: string, address: string}[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [endPhotoPreview, setEndPhotoPreview] = useState<string | null>(null);
   const [endPhotoFile, setEndPhotoFile] = useState<File | null>(null);
   
   const [checklist, setChecklist] = useState<SafetyChecklist>(INITIAL_CHECKLIST);
@@ -104,8 +100,12 @@ export const CheckIn: React.FC = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (isEnd) { setEndPhotoPreview(reader.result as string); setEndPhotoFile(file); }
-        else { setPhotoPreview(reader.result as string); setPhotoFile(file); }
+        if (!isEnd) { 
+          setPhotoPreview(reader.result as string); 
+          setPhotoFile(file); 
+        } else {
+          setEndPhotoFile(file);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -113,7 +113,6 @@ export const CheckIn: React.FC = () => {
 
   const handleStartShift = async () => {
     if (!user || !locationName) { alert("Select location."); return; }
-    setIsProcessing(true);
     try {
       const recordData: any = {
         userId: user.id,
@@ -126,12 +125,11 @@ export const CheckIn: React.FC = () => {
       setActiveSession(newRecord);
     } catch (error: any) {
       setErrorMsg("Failed to start shift.");
-    } finally { setIsProcessing(false); }
+    }
   };
 
   const handleEndShift = async () => {
     if (!activeSession) return;
-    setIsProcessing(true);
     try {
       await Database.endShift(activeSession.id, { endTime: new Date().toISOString() }, endPhotoFile || undefined);
       setActiveSession(null);
@@ -139,7 +137,7 @@ export const CheckIn: React.FC = () => {
       setChecklist(INITIAL_CHECKLIST);
     } catch (error: any) {
       setErrorMsg("Failed to end shift.");
-    } finally { setIsProcessing(false); }
+    }
   };
 
   const toggleCheck = (key: keyof SafetyChecklist) => {
@@ -210,15 +208,15 @@ export const CheckIn: React.FC = () => {
           <select
             className="w-full rounded-2xl border-gray-100 p-5 bg-gray-50 font-black text-gray-900 appearance-none uppercase text-xs tracking-widest"
             value={locationName}
-            onChange={(e) => setLocationName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLocationName(e.target.value)}
           >
             <option value="">-- Select Location --</option>
             {availableLocations.map((loc, i) => <option key={i} value={loc.name}>{loc.name}</option>)}
           </select>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="flex flex-col items-center justify-center h-44 border-2 border-dashed border-gray-200 rounded-3xl cursor-pointer bg-gray-50 hover:bg-white transition-all overflow-hidden group">
-               {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" /> : <div className="text-center text-gray-400"><Camera className="mx-auto mb-2 group-hover:scale-110 transition-transform" /><p className="text-[10px] font-black uppercase">Site Photo</p></div>}
-               <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, false)} />
+               {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" alt="Preview" /> : <div className="text-center text-gray-400"><Camera className="mx-auto mb-2 group-hover:scale-110 transition-transform" /><p className="text-[10px] font-black uppercase">Site Photo</p></div>}
+               <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e: ChangeEvent<HTMLInputElement>) => handlePhotoSelect(e, false)} />
             </label>
             <Button onClick={handleStartShift} className="h-44 rounded-3xl text-2xl font-black uppercase tracking-tighter shadow-2xl bg-brand-600 hover:bg-brand-700">
                <PlayCircle className="mr-3" size={32} /> Clock In
