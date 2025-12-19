@@ -1,16 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { User, UserRole } from './types';
-import { Database } from './services/database';
-import { auth, logoutFirebase } from './services/firebase';
+import { User, UserRole } from './types.ts';
+import { Database } from './services/database.ts';
+import { auth, logoutFirebase } from './services/firebase.ts';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { Layout } from './components/Layout';
-import { Login } from './pages/Login';
-import { Agenda } from './pages/Agenda';
-import { CheckIn } from './pages/CheckIn';
-import { Reports } from './pages/Reports';
-import { Profile } from './pages/Profile';
+import { Layout } from './components/Layout.tsx';
+import { Login } from './pages/Login.tsx';
+import { Agenda } from './pages/Agenda.tsx';
+import { CheckIn } from './pages/CheckIn.tsx';
+import { Reports } from './pages/Reports.tsx';
+import { Profile } from './pages/Profile.tsx';
 import { ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 
 interface AuthContextType {
@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-brand-600 w-12 h-12" />
+          <Loader2 className="animate-spin text-brand-500 w-12 h-12" />
           <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Security Session...</p>
         </div>
       </div>
