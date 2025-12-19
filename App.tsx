@@ -1,16 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { User, UserRole } from './types.ts';
-import { Database } from './services/database.ts';
-import { auth, logoutFirebase } from './services/firebase.ts';
+import { User, UserRole } from './types';
+import { Database } from './services/database';
+import { auth, logoutFirebase } from './services/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { Layout } from './components/Layout.tsx';
-import { Login } from './pages/Login.tsx';
-import { Agenda } from './pages/Agenda.tsx';
-import { CheckIn } from './pages/CheckIn.tsx';
-import { Reports } from './pages/Reports.tsx';
-import { Profile } from './pages/Profile.tsx';
+import { Layout } from './components/Layout';
+import { Login } from './pages/Login';
+import { Agenda } from './pages/Agenda';
+import { CheckIn } from './pages/CheckIn';
+import { Reports } from './pages/Reports';
+import { Profile } from './pages/Profile';
 import { ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 
 interface AuthContextType {
@@ -33,7 +33,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-brand-600 w-12 h-12" />
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Verificando Segurança...</p>
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Security Session...</p>
         </div>
       </div>
     );
@@ -68,8 +68,8 @@ const App: React.FC = () => {
           setUser(appUser);
           setInitError(null);
         } catch (error: any) {
-          console.error("Erro de sincronização:", error);
-          setInitError("Falha na sincronização. Verifique a conexão.");
+          console.error("Sync error:", error);
+          setInitError("Sync failed. Check connection.");
         }
       } else {
         setUser(null);
@@ -90,8 +90,8 @@ const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100 text-center">
           <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
-          <h1 className="text-xl font-black text-gray-900 mb-2">Sistema Offline</h1>
-          <p className="text-gray-500">Configuração do Firebase ausente ou inválida.</p>
+          <h1 className="text-xl font-black text-gray-900 mb-2">System Offline</h1>
+          <p className="text-gray-500">Firebase configuration missing or invalid.</p>
         </div>
       </div>
     );
