@@ -9,9 +9,9 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  pps: string; // Personal Public Service Number
+  pps: string;
   phone: string;
-  password?: string; // In a real app, never store plain text
+  password?: string;
 }
 
 export interface ScheduleItem {
@@ -19,7 +19,7 @@ export interface ScheduleItem {
   userId: string;
   locationName: string;
   address: string;
-  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+  dayOfWeek: number;
   hoursPerDay: number;
 }
 
@@ -34,7 +34,7 @@ export interface Office {
   name: string;
   eircode: string;
   address: string;
-  defaultSchedule: OfficeScheduleConfig[]; // Stores the days and hours configuration
+  defaultSchedule: OfficeScheduleConfig[];
 }
 
 export interface GeoLocation {
@@ -85,16 +85,16 @@ export interface SafetyChecklist {
 export interface TimeRecord {
   id: string;
   userId: string;
-  scheduleId?: string; // Optional linkage to a planned schedule
+  scheduleId?: string;
   locationName: string;
-  startTime: string; // ISO String
-  endTime?: string; // ISO String
-  date: string; // YYYY-MM-DD
+  startTime: string;
+  endTime?: string;
+  date: string;
   safetyChecklist: SafetyChecklist;
-  photoUrl?: string; // Start Base64 or URL
-  endPhotoUrl?: string; // End Base64 or URL
-  startLocation?: GeoLocation; // Latitude/Longitude at start
-  endLocation?: GeoLocation;   // Latitude/Longitude at end
+  photoUrl?: string;
+  endPhotoUrl?: string;
+  startLocation?: GeoLocation;
+  endLocation?: GeoLocation;
   notes?: string;
 }
 

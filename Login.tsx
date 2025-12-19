@@ -14,6 +14,7 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
+  // Redireciona se já estiver autenticado
   if (isAuthenticated) {
     navigate('/');
   }
@@ -29,7 +30,8 @@ export const Login: React.FC = () => {
       await signInWithGoogle();
       navigate('/');
     } catch (err: any) {
-      setError('Auth failed.');
+      console.error(err);
+      setError('Falha na autenticação Google.');
     } finally {
       setLoading(false);
     }
@@ -37,8 +39,12 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!email || !password) return;
+    if (mode === 'register' && !name) return;
+
     setLoading(true);
     setError('');
+
     try {
       if (mode === 'login') {
         await loginWithEmail(email, password);
@@ -47,18 +53,21 @@ export const Login: React.FC = () => {
       }
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Error occurred.');
+      console.error("Erro de Auth:", err);
+      setError(err.message || 'Erro ao processar autenticação.');
     } finally {
       setLoading(false);
     }
   };
+
+  const darkInputStyle = "bg-brand-900/5 border-gray-200 focus:border-brand-500";
 
   return (
     <div className="min-h-screen bg-brand-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-brand-100">
         <div className="bg-brand-600 p-10 text-white text-center">
           <h1 className="text-3xl font-black tracking-tighter uppercase">Downey Staff</h1>
-          <p className="text-brand-100 mt-2 text-[10px] font-black tracking-widest uppercase">Operational Portal</p>
+          <p className="text-brand-100 mt-2 text-[10px] font-black tracking-widest uppercase">Portal de Acesso</p>
         </div>
 
         <div className="p-10">
@@ -71,7 +80,7 @@ export const Login: React.FC = () => {
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-black uppercase transition-all ${mode === m ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 {m === 'login' ? <LogIn size={14} /> : <UserPlus size={14} />}
-                {m}
+                {m === 'login' ? 'Entrar' : 'Registrar'}
               </button>
             ))}
           </div>
@@ -79,44 +88,49 @@ export const Login: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <Input
-                label="Full Name"
-                placeholder="John Smith"
+                label="Nome Completo"
+                placeholder="Ex: João Silva"
                 value={name}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                className={darkInputStyle}
                 required
               />
             )}
+
             <Input
-              label="Staff Email"
+              label="E-mail Corporativo"
               type="email"
-              placeholder="name@downey.ie"
+              placeholder="nome@downey.ie"
               value={email}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              className={darkInputStyle}
               required
             />
+
             <Input
-              label="Password"
+              label="Senha"
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              className={darkInputStyle}
               required
             />
 
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-[10px] font-black text-center border border-red-100 animate-shake uppercase">
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-[10px] font-black uppercase text-center border border-red-100 animate-shake">
                 {error}
               </div>
             )}
 
             <Button type="submit" fullWidth disabled={loading} className="h-14 text-sm font-black uppercase tracking-widest shadow-xl">
-              {loading ? <Loader2 className="animate-spin" /> : (mode === 'login' ? 'Enter' : 'Join')}
+              {loading ? <Loader2 className="animate-spin" /> : (mode === 'login' ? 'Acessar Dashboard' : 'Finalizar Cadastro')}
             </Button>
           </form>
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-            <div className="relative flex justify-center text-[10px] font-black uppercase"><span className="px-3 bg-white text-gray-400 tracking-widest">or</span></div>
+            <div className="relative flex justify-center text-[10px] font-black uppercase"><span className="px-3 bg-white text-gray-400 tracking-widest">OU</span></div>
           </div>
 
           <button
@@ -126,7 +140,7 @@ export const Login: React.FC = () => {
             className="w-full flex items-center justify-center bg-white border-2 border-gray-100 rounded-xl p-4 text-gray-700 hover:bg-gray-50 transition-all font-black text-xs uppercase tracking-tight shadow-sm"
           >
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-3" />
-            Continue with Google
+            Continuar com Google
           </button>
         </div>
       </div>

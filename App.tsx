@@ -4,7 +4,7 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { User, UserRole } from './types.ts';
 import { Database } from './services/database.ts';
 import { auth, logoutFirebase } from './services/firebase.ts';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Layout } from './components/Layout.tsx';
 import { Login } from './pages/Login.tsx';
 import { Agenda } from './pages/Agenda.tsx';
@@ -15,7 +15,7 @@ import { ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 
 interface AuthContextType {
   user: User | null;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -33,7 +33,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-brand-600 w-12 h-12" />
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Security Check...</p>
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Verificando Segurança...</p>
         </div>
       </div>
     );
@@ -61,15 +61,15 @@ const App: React.FC = () => {
       return;
     }
     
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
           const appUser = await Database.syncUser(firebaseUser);
           setUser(appUser);
           setInitError(null);
         } catch (error: any) {
-          console.error("Sync error:", error);
-          setInitError("Sync failed. Check connection.");
+          console.error("Erro de sincronização:", error);
+          setInitError("Falha na sincronização. Verifique a conexão.");
         }
       } else {
         setUser(null);
@@ -90,8 +90,8 @@ const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100 text-center">
           <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
-          <h1 className="text-xl font-black text-gray-900 mb-2">System Offline</h1>
-          <p className="text-gray-500">Firebase configuration missing or invalid.</p>
+          <h1 className="text-xl font-black text-gray-900 mb-2">Sistema Offline</h1>
+          <p className="text-gray-500">Configuração do Firebase ausente ou inválida.</p>
         </div>
       </div>
     );
