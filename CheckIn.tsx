@@ -80,12 +80,13 @@ export const CheckIn: React.FC = () => {
         if (session) {
           setActiveSession(session);
           setLocationName(session.locationName);
-          setChecklist(session.safetyChecklist);
+          // Safely merge existing session checklist with INITIAL to avoid missing fields error
+          setChecklist({ ...INITIAL_CHECKLIST, ...session.safetyChecklist });
           setPhotoPreview(session.photoUrl || null);
         }
 
         const schedules: ScheduleItem[] = await Database.getSchedulesByUser(user.id);
-        const uniqueLocs = new Map();
+        const uniqueLocs = new Map<string, string>();
         schedules.forEach((s: ScheduleItem) => {
           if (!uniqueLocs.has(s.locationName)) {
             uniqueLocs.set(s.locationName, s.address);
@@ -94,7 +95,7 @@ export const CheckIn: React.FC = () => {
         
         setAvailableLocations(Array.from(uniqueLocs.entries()).map(([name, address]) => ({
           name,
-          address: address as string
+          address
         })));
       } catch (e) {
         console.error("Error initializing check-in", e);
@@ -166,7 +167,7 @@ export const CheckIn: React.FC = () => {
 
   const handleStartShift = async () => {
     if (!user || !locationName) {
-      alert("Location is mandatory.");
+      alert("Please select a location.");
       return;
     }
 
@@ -175,7 +176,7 @@ export const CheckIn: React.FC = () => {
     
     try {
         const location = await getCurrentLocation();
-        const recordData: any = {
+        const recordData: Omit<TimeRecord, 'id'> = {
           userId: user.id,
           locationName,
           startTime: new Date().toISOString(),
@@ -184,11 +185,11 @@ export const CheckIn: React.FC = () => {
           startLocation: location || undefined
         };
 
-        const newRecord = await Database.startShift(recordData, photoFile || undefined);
+        const newRecord = await Database.startShift(recordData as any, photoFile || undefined);
         setActiveSession(newRecord);
     } catch (error: any) {
         console.error(error);
-        setErrorMsg("Error starting shift. Check console.");
+        setErrorMsg("Failed to start shift. Cloud storage error.");
     } finally {
         setIsProcessing(false);
     }
@@ -213,7 +214,7 @@ export const CheckIn: React.FC = () => {
       setChecklist(INITIAL_CHECKLIST);
     } catch (error: any) {
       console.error(error);
-      setErrorMsg("Error ending shift.");
+      setErrorMsg("Failed to finalize shift.");
     } finally {
       setIsProcessing(false);
     }
@@ -221,7 +222,7 @@ export const CheckIn: React.FC = () => {
 
   const toggleCheck = (key: keyof SafetyChecklist) => {
     if (!activeSession) {
-      setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+      setChecklist((prev: SafetyChecklist) => ({ ...prev, [key]: !prev[key] }));
     }
   };
 
@@ -257,7 +258,7 @@ export const CheckIn: React.FC = () => {
     </button>
   );
 
-  if (initializing) return <div className="flex flex-col items-center justify-center p-20 text-gray-400"><Loader2 className="animate-spin mb-4" /> Loading tracking session...</div>;
+  if (initializing) return <div className="flex flex-col items-center justify-center p-20 text-gray-400"><Loader2 className="animate-spin mb-4" /> Validating existing sessions...</div>;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -279,21 +280,20 @@ export const CheckIn: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="p-6 bg-brand-900 text-white">
           <h3 className="font-black text-xl uppercase tracking-widest">Pre-Shift Safety Check</h3>
-          <p className="text-brand-300 text-[10px] font-bold mt-1 uppercase">COMPLIANCE WITH SAFETY PLAN OF ACTION & PPE REQUIREMENTS</p>
+          <p className="text-brand-300 text-[10px] font-bold mt-1 uppercase tracking-tighter">SITE COMPLIANCE & PERSONAL PROTECTIVE EQUIPMENT</p>
         </div>
 
         <div className="p-6 space-y-8">
-          {/* PPE SECTION */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-black text-xs">01</span>
-              <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">PPE Required (Please Tick Box)</h4>
+              <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">PPE Checklist</h4>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
               <PPECARD id="highVis" label="High Vis" icon={Construction} />
               <PPECARD id="helmet" label="Helmet" icon={HardHat} />
-              <PPECARD id="goggles" label="Safety Goggles" icon={Glasses} />
-              <PPECARD id="gloves" label="Correct Gloves" icon={HandMetal} />
+              <PPECARD id="goggles" label="Goggles" icon={Glasses} />
+              <PPECARD id="gloves" label="Gloves" icon={HandMetal} />
               <PPECARD id="mask" label="Mask" icon={Wind} />
               <PPECARD id="earMuffs" label="Ear Muffs" icon={Ear} />
               <PPECARD id="faceGuard" label="Face Guard" icon={ScanEye} />
@@ -306,51 +306,51 @@ export const CheckIn: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">02</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Safety Plan of Action</h4>
+                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Safety Protocol</h4>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="knowSafeJob" label="Know how to complete job safely?" />
-                <CheckItem id="weatherCheck" label="Weather conditions appropriate?" />
-                <CheckItem id="safePassInDate" label="Safe Pass in date?" />
-                <CheckItem id="slipTripAware" label="Aware of slip, trip, fall hazards?" />
-                <CheckItem id="wetFloorsCleaned" label="Wet floors cleaned in advance?" />
+                <CheckItem id="knowSafeJob" label="Ready to work safely?" />
+                <CheckItem id="weatherCheck" label="Weather check done?" />
+                <CheckItem id="safePassInDate" label="Safe Pass validated?" />
+                <CheckItem id="slipTripAware" label="Slip/Trip awareness?" />
+                <CheckItem id="wetFloorsCleaned" label="Wet floors handled?" />
               </div>
 
               <div className="flex items-center gap-2 mt-6">
                 <span className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-xs">03</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Lifting Plan</h4>
+                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Lifting & Manual</h4>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="manualHandlingCert" label="Manual Handling Cert completed?" />
-                <CheckItem id="heavyLiftingAssistance" label="2 people needed for heavy lifting?" />
+                <CheckItem id="manualHandlingCert" label="Manual Handling valid?" />
+                <CheckItem id="heavyLiftingAssistance" label="Help available for heavy?" />
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-black text-xs">04</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Working at Heights</h4>
+                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Heights & Signs</h4>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="anchorPointsTie" label="Tie onto anchor points?" />
-                <CheckItem id="ladderFooted" label="One person to foot end of ladder?" />
-                <CheckItem id="safetySigns" label="Safety cones/signs necessary?" />
-                <CheckItem id="commWithOthers" label="Pedestrians/vehicles informed?" />
+                <CheckItem id="anchorPointsTie" label="Anchors checked?" />
+                <CheckItem id="ladderFooted" label="Ladder support present?" />
+                <CheckItem id="safetySigns" label="Signage placed?" />
+                <CheckItem id="commWithOthers" label="Site comms active?" />
               </div>
 
               <div className="flex items-center gap-2 mt-6">
                 <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-black text-xs">05</span>
-                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Equipment Checked</h4>
+                <h4 className="font-black text-gray-800 uppercase tracking-tighter text-sm">Equipment Check</h4>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                <CheckItem id="ladderCheck" label="Ladders check complete?" />
-                <CheckItem id="sharpEdgesCheck" label="Check for sharp edges?" />
-                <CheckItem id="scraperBladeCovers" label="Check covers on scraper blades?" />
-                <CheckItem id="hotSurfacesCheck" label="Check for hot surfaces?" />
-                <CheckItem id="chemicalCourseComplete" label="Chemical Awareness course complete?" />
-                <CheckItem id="chemicalDilutionAware" label="Aware of dilution rates & safety?" />
-                <CheckItem id="equipmentTidy" label="All equipment tidy during work?" />
-                <CheckItem id="laddersPutAway" label="Ladders dismantled & put away?" />
+                <CheckItem id="ladderCheck" label="Ladders inspected?" />
+                <CheckItem id="sharpEdgesCheck" label="Sharp edges check?" />
+                <CheckItem id="scraperBladeCovers" label="Scraper covers on?" />
+                <CheckItem id="hotSurfacesCheck" label="Hot surfaces check?" />
+                <CheckItem id="chemicalCourseComplete" label="Chemical Course OK?" />
+                <CheckItem id="chemicalDilutionAware" label="Dilution rates understood?" />
+                <CheckItem id="equipmentTidy" label="Area kept tidy?" />
+                <CheckItem id="laddersPutAway" label="Post-work storage done?" />
               </div>
             </div>
           </div>
@@ -360,12 +360,12 @@ export const CheckIn: React.FC = () => {
       {!activeSession && (
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 space-y-6">
           <div>
-            <label className="block text-[10px] font-black text-brand-600 mb-2 uppercase tracking-widest">Active Work Location</label>
+            <label className="block text-[10px] font-black text-brand-600 mb-2 uppercase tracking-widest">Selected Location</label>
             <div className="relative">
               <select
                 className="w-full rounded-xl border-gray-200 p-4 appearance-none bg-gray-50 border font-black text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all text-lg"
                 value={locationName}
-                onChange={(e) => setLocationName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLocationName(e.target.value)}
               >
                 <option value="">-- Choose Assigned Location --</option>
                 {availableLocations.map((loc, idx) => (
@@ -377,20 +377,20 @@ export const CheckIn: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="flex flex-col space-y-4">
-                <label className="block text-[10px] font-black text-brand-600 mb-2 uppercase tracking-widest">Arrival Photo (Optional)</label>
+             <div className="flex flex-col space-y-2">
+                <label className="block text-[10px] font-black text-brand-600 uppercase tracking-widest">Arrival Proof (Optional)</label>
                 <label className="flex flex-col items-center justify-center w-full h-44 border-2 border-gray-200 border-dashed rounded-2xl cursor-pointer bg-gray-50 hover:bg-white hover:border-brand-400 transition-all group overflow-hidden">
                     {photoPreview ? (
                         <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <Camera className="w-6 h-6" />
+                            <div className="w-10 h-10 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <Camera className="w-5 h-5" />
                             </div>
-                            <p className="text-xs text-gray-500 font-bold uppercase tracking-tight">Capture site arrival</p>
+                            <p className="text-[10px] text-gray-500 font-black uppercase tracking-tight">Capture Arrival</p>
                         </div>
                     )}
-                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, false)} />
+                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePhotoSelect(e, false)} />
                 </label>
              </div>
 
@@ -404,7 +404,7 @@ export const CheckIn: React.FC = () => {
                     {isProcessing ? <Loader2 className="animate-spin" size={48} /> : (
                         <>
                             <PlayCircle size={48} />
-                            <span className="uppercase tracking-tighter">Start Shift Now</span>
+                            <span className="uppercase tracking-tighter">Clock In</span>
                         </>
                     )}
                 </Button>
@@ -415,28 +415,28 @@ export const CheckIn: React.FC = () => {
 
       {activeSession && (
         <div className="bg-green-600 p-10 rounded-3xl text-center shadow-2xl space-y-8 animate-fade-in border-4 border-green-500/50">
-           <div>
-              <p className="text-green-100 font-black uppercase text-xs tracking-[0.2em] mb-4">Shift in Progress • {activeSession.locationName}</p>
+           <div className="space-y-2">
+              <p className="text-green-100 font-black uppercase text-xs tracking-[0.2em]">Active Shift • {activeSession.locationName}</p>
               <div className="text-8xl font-black text-white tracking-tighter tabular-nums drop-shadow-lg">{formatTime(elapsedTime)}</div>
            </div>
            
            <div className="max-w-md mx-auto grid grid-cols-1 gap-4">
               <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/20 text-left">
-                  <label className="block text-[10px] font-black uppercase text-white/70 mb-2 tracking-widest">End of Shift Photo (Optional)</label>
+                  <label className="block text-[10px] font-black uppercase text-white/70 mb-2 tracking-widest">Departure Proof (Optional)</label>
                   <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-white/30 border-dashed rounded-xl cursor-pointer hover:bg-white/10 transition-colors group overflow-hidden">
                     {endPhotoPreview ? <img src={endPhotoPreview} alt="Preview" className="w-full h-full object-cover" /> : <Camera className="w-8 h-8 text-white/50 group-hover:scale-110 transition-transform" />}
-                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, true)} />
+                    <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePhotoSelect(e, true)} />
                   </label>
               </div>
 
               <Button 
                   onClick={handleEndShift} 
                   variant="danger" 
-                  className="w-full h-20 text-xl font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 border-none bg-red-600 hover:bg-red-700"
+                  className="w-full h-20 text-xl font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 border-none bg-red-600 hover:bg-red-700 text-white"
                   disabled={isProcessing}
               >
                   {isProcessing ? <Loader2 className="animate-spin" /> : <StopCircle size={28} className="text-white" />} 
-                  <span className="uppercase tracking-tighter text-white">Finish and Clock Out</span>
+                  <span className="uppercase tracking-tighter">Finish and Clock Out</span>
               </Button>
            </div>
         </div>

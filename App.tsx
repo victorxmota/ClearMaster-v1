@@ -30,7 +30,10 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-brand-600 w-12 h-12" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-brand-600 w-12 h-12" />
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Loading Security Session...</p>
+        </div>
       </div>
     );
   }
@@ -52,7 +55,10 @@ const App: React.FC = () => {
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth) {
+      setIsLoading(false);
+      return;
+    }
     
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -62,7 +68,7 @@ const App: React.FC = () => {
           setInitError(null);
         } catch (error: any) {
           console.error("Failed to sync user", error);
-          setInitError("Error syncing data. Check console for details.");
+          setInitError("Error syncing data with cloud. Check console.");
         }
       } else {
         setUser(null);
@@ -83,8 +89,8 @@ const App: React.FC = () => {
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 text-center">
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border border-red-100">
             <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Initialization Error</h1>
-            <p className="text-gray-600">Could not connect to Firebase. Please check your configuration.</p>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2 tracking-tighter">Firebase Error</h1>
+            <p className="text-gray-600">The connection to the authentication server could not be established. Please check your config.</p>
         </div>
       </div>
     );
@@ -93,7 +99,7 @@ const App: React.FC = () => {
   return (
     <AuthContext.Provider value={{ user, logout, isAuthenticated: !!user, isLoading }}>
       {initError && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-sm font-medium animate-bounce">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-sm font-bold animate-bounce">
           <AlertCircle size={18} />
           {initError}
         </div>
@@ -101,31 +107,10 @@ const App: React.FC = () => {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Agenda />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/check-in" element={
-            <ProtectedRoute allowedRoles={[UserRole.EMPLOYEE]}>
-              <CheckIn />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/reports" element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
-
+          <Route path="/" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
+          <Route path="/check-in" element={<ProtectedRoute allowedRoles={[UserRole.EMPLOYEE]}><CheckIn /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
