@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   EMPLOYEE = 'EMPLOYEE',
@@ -36,6 +37,51 @@ export interface Office {
   defaultSchedule: OfficeScheduleConfig[]; // Stores the days and hours configuration
 }
 
+export interface GeoLocation {
+  lat: number;
+  lng: number;
+}
+
+export interface SafetyChecklist {
+  // PPE
+  highVis: boolean;
+  helmet: boolean;
+  goggles: boolean;
+  gloves: boolean;
+  mask: boolean;
+  earMuffs: boolean;
+  faceGuard: boolean;
+  harness: boolean;
+  boots: boolean;
+
+  // Safety Plan
+  knowSafeJob: boolean;
+  weatherCheck: boolean;
+  safePassInDate: boolean;
+  slipTripAware: boolean;
+  wetFloorsCleaned: boolean;
+
+  // Lifting
+  manualHandlingCert: boolean;
+  heavyLiftingAssistance: boolean;
+
+  // Working at Heights
+  anchorPointsTie: boolean;
+  ladderFooted: boolean;
+  safetySigns: boolean;
+  commWithOthers: boolean;
+
+  // Equipment
+  ladderCheck: boolean;
+  sharpEdgesCheck: boolean;
+  scraperBladeCovers: boolean;
+  hotSurfacesCheck: boolean;
+  chemicalCourseComplete: boolean;
+  chemicalDilutionAware: boolean;
+  equipmentTidy: boolean;
+  laddersPutAway: boolean;
+}
+
 export interface TimeRecord {
   id: string;
   userId: string;
@@ -44,14 +90,11 @@ export interface TimeRecord {
   startTime: string; // ISO String
   endTime?: string; // ISO String
   date: string; // YYYY-MM-DD
-  safetyChecklist: {
-    gloves: boolean;
-    boots: boolean;
-    vest: boolean;
-    chemicalsSafe: boolean;
-  };
+  safetyChecklist: SafetyChecklist;
   photoUrl?: string; // Start Base64 or URL
   endPhotoUrl?: string; // End Base64 or URL
+  startLocation?: GeoLocation; // Latitude/Longitude at start
+  endLocation?: GeoLocation;   // Latitude/Longitude at end
   notes?: string;
 }
 

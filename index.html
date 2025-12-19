@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-    <title>CleanMaster Pro</title>
+    <title>Downey Cleaning</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -31,6 +31,15 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+      /* Shake animation for errors */
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+      }
+      .animate-shake {
+        animation: shake 0.2s ease-in-out 0s 2;
+      }
     </style>
   <script type="importmap">
 {
@@ -45,10 +54,12 @@
     "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.2",
     "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
     "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
-    "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2"
+    "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2",
+    "firebase/": "https://esm.sh/firebase@^12.6.0/"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-gray-50 text-slate-800 antialiased">
     <div id="root"></div>

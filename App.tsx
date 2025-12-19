@@ -1,20 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { User, UserRole } from './types';
-import { MockDB } from './services/mockDatabase';
+import { Database } from './services/database';
+import { auth, logoutFirebase } from './services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Agenda } from './pages/Agenda';
 import { CheckIn } from './pages/CheckIn';
 import { Reports } from './pages/Reports';
 import { Profile } from './pages/Profile';
+import { ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 
-// Auth Context Definition
 interface AuthContextType {
   user: User | null;
-  login: (email: string, pass: string) => boolean;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
@@ -23,8 +25,16 @@ export const useAuth = () => useContext(AuthContext);
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode, allowedRoles?: UserRole[] }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="animate-spin text-brand-600 w-12 h-12" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -39,33 +49,61 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  // If Firebase fails to initialize
+  if (!auth) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 text-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border border-red-100">
+            <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Initialization Error</h1>
+            <p className="text-gray-600">Could not connect to Firebase. Please check your connection or API keys.</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
-    // Check for existing session on load
-    const storedUser = localStorage.getItem('clean_app_current_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const appUser = await Database.syncUser(firebaseUser);
+          setUser(appUser);
+          setInitError(null);
+        } catch (error: any) {
+          console.error("Failed to sync user", error);
+          if (error.message?.includes('storage')) {
+             setInitError("Cloud Storage not activated. Please enable it in the Firebase Console.");
+          } else if (error.message?.includes('permission-denied')) {
+             setInitError("Permission denied. Ensure Firestore Rules are deployed.");
+          } else {
+             setInitError("Error syncing data. Check console for details.");
+          }
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = (email: string, pass: string) => {
-    const users = MockDB.getUsers();
-    const found = users.find(u => u.email === email && u.password === pass);
-    if (found) {
-      setUser(found);
-      localStorage.setItem('clean_app_current_user', JSON.stringify(found));
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
+  const logout = async () => {
+    await logoutFirebase();
     setUser(null);
-    localStorage.removeItem('clean_app_current_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, logout, isAuthenticated: !!user, isLoading }}>
+      {initError && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-sm font-medium animate-bounce">
+          <AlertCircle size={18} />
+          {initError}
+        </div>
+      )}
       <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />

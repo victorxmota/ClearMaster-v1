@@ -1,5 +1,5 @@
 {
-  "name": "cleanmaster-pro",
+  "name": "downey-cleaning",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "date-fns": "^4.1.0",
+    "firebase": "^10.8.1",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.344.0",
