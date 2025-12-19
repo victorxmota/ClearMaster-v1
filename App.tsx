@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { User, UserRole } from './types';
-import { Database } from './services/database';
-import { auth, logoutFirebase } from './services/firebase';
+import { Database } from './services/database.ts';
+import { auth, logoutFirebase } from './services/firebase.ts';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -52,21 +52,10 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
 
-  // If Firebase fails to initialize
-  if (!auth) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 text-center">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border border-red-100">
-            <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Initialization Error</h1>
-            <p className="text-gray-600">Could not connect to Firebase. Please check your connection or API keys.</p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth!, async (firebaseUser) => {
+    if (!auth) return;
+    
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           const appUser = await Database.syncUser(firebaseUser);
@@ -74,13 +63,7 @@ const App: React.FC = () => {
           setInitError(null);
         } catch (error: any) {
           console.error("Failed to sync user", error);
-          if (error.message?.includes('storage')) {
-             setInitError("Cloud Storage not activated. Please enable it in the Firebase Console.");
-          } else if (error.message?.includes('permission-denied')) {
-             setInitError("Permission denied. Ensure Firestore Rules are deployed.");
-          } else {
-             setInitError("Error syncing data. Check console for details.");
-          }
+          setInitError("Error syncing data. Check console for details.");
         }
       } else {
         setUser(null);
@@ -95,6 +78,18 @@ const App: React.FC = () => {
     await logoutFirebase();
     setUser(null);
   };
+
+  if (!auth) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 text-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border border-red-100">
+            <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Initialization Error</h1>
+            <p className="text-gray-600">Could not connect to Firebase. Please check your configuration.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, logout, isAuthenticated: !!user, isLoading }}>
