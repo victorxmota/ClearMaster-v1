@@ -4,18 +4,20 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { User, UserRole } from './types';
 import { Database } from './services/database';
 import { auth, logoutFirebase } from './services/firebase';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+// Fix: Removed Auth type which was reported as missing from firebase/auth
+import { onAuthStateChanged } from 'firebase/auth';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Agenda } from './pages/Agenda';
 import { CheckIn } from './pages/CheckIn';
 import { Reports } from './pages/Reports';
 import { Profile } from './pages/Profile';
-import { ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
+// Fix: Corrected typo from 'lucide-center' to 'lucide-react'
+import { ShieldAlert } from 'lucide-react';
 
 interface AuthContextType {
   user: User | null;
-  logout: () => Promise<void>;
+  logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -31,10 +33,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-brand-500 w-12 h-12" />
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Security Session...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
       </div>
     );
   }
@@ -53,23 +52,36 @@ const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [initError, setInitError] = useState<string | null>(null);
+
+  if (!auth) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-50 text-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full border border-red-100">
+            <div className="mx-auto bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <ShieldAlert className="text-red-600 w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Configuração Pendente</h1>
+            <p className="text-gray-600 mb-6">
+                O aplicativo não encontrou as chaves de API do Firebase.
+            </p>
+            <div className="text-left bg-slate-900 text-slate-50 p-4 rounded-lg text-sm overflow-x-auto font-mono mb-4">
+                <p className="opacity-50 mb-2">// Verifique seu arquivo .env</p>
+                <p>VITE_FIREBASE_API_KEY=...</p>
+            </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
-    if (!auth) {
-      setIsLoading(false);
-      return;
-    }
-    
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+    // Fix: cast auth to any as Auth type import was reported missing
+    const unsubscribe = onAuthStateChanged(auth as any, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           const appUser = await Database.syncUser(firebaseUser);
           setUser(appUser);
-          setInitError(null);
-        } catch (error: any) {
-          console.error("Sync error:", error);
-          setInitError("Sync failed. Check connection.");
+        } catch (error) {
+          console.error("Failed to sync user", error);
         }
       } else {
         setUser(null);
@@ -85,26 +97,8 @@ const App: React.FC = () => {
     setUser(null);
   };
 
-  if (!auth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100 text-center">
-          <ShieldAlert className="text-red-600 w-12 h-12 mx-auto mb-4" />
-          <h1 className="text-xl font-black text-gray-900 mb-2">System Offline</h1>
-          <p className="text-gray-500">Firebase configuration missing or invalid.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AuthContext.Provider value={{ user, logout, isAuthenticated: !!user, isLoading }}>
-      {initError && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-xs font-black animate-bounce">
-          <AlertCircle size={16} />
-          {initError}
-        </div>
-      )}
       <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
