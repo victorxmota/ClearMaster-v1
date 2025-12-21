@@ -1,16 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { User, UserRole } from './types.ts';
-import { Database } from './services/database.ts';
-import { auth, logoutFirebase } from './services/firebase.ts';
+import { User, UserRole } from './types';
+import { Database } from './services/database';
+import { auth, logoutFirebase } from './services/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { Layout } from './components/Layout.tsx';
-import { Login } from './pages/Login.tsx';
-import { Agenda } from './pages/Agenda.tsx';
-import { CheckIn } from './pages/CheckIn.tsx';
-import { Reports } from './pages/Reports.tsx';
-import { Profile } from './pages/Profile.tsx';
+import { Layout } from './components/Layout';
+import { Login } from './pages/Login';
+import { Agenda } from './pages/Agenda';
+import { CheckIn } from './pages/CheckIn';
+import { Reports } from './pages/Reports';
+import { Profile } from './pages/Profile';
 import { ShieldAlert, AlertCircle, Loader2 } from 'lucide-react';
 
 interface AuthContextType {

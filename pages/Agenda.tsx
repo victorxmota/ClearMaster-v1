@@ -45,7 +45,7 @@ export const Agenda: React.FC = () => {
       setIsLoading(true);
       if (isAdmin) {
         const allUsers = await Database.getAllUsers();
-        setUsers(allUsers.filter(u => u.role === UserRole.EMPLOYEE));
+        setUsers(allUsers.filter((u: User) => u.role === UserRole.EMPLOYEE));
         const allOffices = await Database.getOffices();
         setOffices(allOffices);
       } else {
@@ -195,7 +195,7 @@ export const Agenda: React.FC = () => {
   if (isLoading && schedules.length === 0 && offices.length === 0) {
       return (
         <div className="flex justify-center p-8">
-            <Loader2 className="animate-spin text-brand-600" size={32} />
+            <Loader2 className="animate-spin text-brand-500" size={32} />
         </div>
       );
   }
@@ -363,7 +363,7 @@ export const Agenda: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900">Total Weekly Hours</h3>
               <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Accumulated Forecast</p>
             </div>
-            <div className="text-4xl font-black text-brand-600 tracking-tighter">{calculateWeeklyHours()}h</div>
+            <div className="text-4xl font-black text-brand-500 tracking-tighter">{calculateWeeklyHours()}h</div>
           </div>
 
           {isAddingSchedule && (
@@ -426,7 +426,7 @@ export const Agenda: React.FC = () => {
                        key={idx}
                        type="button"
                        onClick={() => toggleScheduleDay(idx)}
-                       className={`flex items-center space-x-2 px-3 py-2 rounded-md border text-xs font-bold transition-all ${selectedDays.includes(idx) ? 'bg-brand-600 border-brand-500 text-white shadow-inner' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'}`}
+                       className={`flex items-center space-x-2 px-3 py-2 rounded-md border text-xs font-bold transition-all ${selectedDays.includes(idx) ? 'bg-brand-500 border-brand-500 text-white shadow-inner' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'}`}
                      >
                        {selectedDays.includes(idx) ? <CheckSquare size={14} /> : <Square size={14} />}
                        <span>{day.substring(0, 3).toUpperCase()}</span>
@@ -461,7 +461,7 @@ export const Agenda: React.FC = () => {
                     <Trash2 size={18} />
                   </button>
                 )}
-                <div className="flex items-center space-x-2 mb-3 text-brand-600">
+                <div className="flex items-center space-x-2 mb-3 text-brand-500">
                   <Calendar size={18} />
                   <span className="font-bold text-lg">{DAYS[schedule.dayOfWeek]}</span>
                 </div>

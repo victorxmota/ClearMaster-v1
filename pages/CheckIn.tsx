@@ -161,19 +161,19 @@ export const CheckIn: React.FC = () => {
     <button
       onClick={() => toggleCheck(id)}
       disabled={!!activeSession}
-      className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all aspect-square ${checklist[id] ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-gray-50 bg-gray-50/50 text-gray-300'}`}
+      className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all aspect-square ${checklist[id] ? 'border-brand-500 bg-brand-50 text-brand-500' : 'border-gray-50 bg-gray-50/50 text-gray-300'}`}
     >
       <Icon size={20} className="mb-1" />
       <span className="text-[8px] font-black uppercase text-center leading-none">{label}</span>
     </button>
   );
 
-  if (initializing) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-brand-600" size={40} /></div>;
+  if (initializing) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-brand-500" size={40} /></div>;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <h2 className="text-3xl font-black text-gray-900 flex items-center gap-3 uppercase tracking-tighter">
-        <ShieldCheck className="text-brand-600" size={32} /> Clock In
+        <ShieldCheck className="text-brand-500" size={32} /> Clock In
       </h2>
 
       {errorMsg && <div className="p-4 bg-red-50 text-red-600 rounded-xl font-bold text-xs uppercase animate-shake">{errorMsg}</div>}
@@ -181,7 +181,7 @@ export const CheckIn: React.FC = () => {
       <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="p-6 bg-brand-900 text-white">
           <h3 className="font-black text-lg uppercase tracking-widest">Safety Compliance</h3>
-          <p className="text-brand-300 text-[10px] font-black uppercase">REQUIRED PPE & PROTOCOLS</p>
+          <p className="text-brand-400 text-[10px] font-black uppercase">REQUIRED PPE & PROTOCOLS</p>
         </div>
         <div className="p-6 space-y-8">
           <div className="grid grid-cols-5 md:grid-cols-9 gap-2">
@@ -218,7 +218,7 @@ export const CheckIn: React.FC = () => {
                {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" alt="Preview" /> : <div className="text-center text-gray-400"><Camera className="mx-auto mb-2 group-hover:scale-110 transition-transform" /><p className="text-[10px] font-black uppercase">Site Photo</p></div>}
                <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e: ChangeEvent<HTMLInputElement>) => handlePhotoSelect(e, false)} />
             </label>
-            <Button onClick={handleStartShift} className="h-44 rounded-3xl text-2xl font-black uppercase tracking-tighter shadow-2xl bg-brand-600 hover:bg-brand-700">
+            <Button onClick={handleStartShift} className="h-44 rounded-3xl text-2xl font-black uppercase tracking-tighter shadow-2xl bg-brand-500 hover:bg-brand-600">
                <PlayCircle className="mr-3" size={32} /> Clock In
             </Button>
           </div>
