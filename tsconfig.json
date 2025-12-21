@@ -7,8 +7,8 @@
     "module": "ESNext",
     "skipLibCheck": true,
 
-    /* Resolução de Módulos */
-    "moduleResolution": "node",
+    /* Bundler mode */
+    "moduleResolution": "Bundler",
     "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "isolatedModules": true,

@@ -14,7 +14,6 @@ import {
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
-import { Database } from "./database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCs1NAMdvtuiWzbYMohY0aZa2AiS9z8uNw",
@@ -61,7 +60,6 @@ export const registerWithEmail = async (email: string, pass: string, name: strin
   if (!auth) throw new Error("Firebase not initialized.");
   const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
   await updateProfile(userCredential.user, { displayName: name });
-  await Database.syncUser(userCredential.user, name);
   return userCredential.user;
 };
 

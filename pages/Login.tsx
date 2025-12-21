@@ -2,6 +2,7 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase';
+import { Database } from '../services/database';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Loader2 } from 'lucide-react';
@@ -43,7 +44,9 @@ export const Login: React.FC = () => {
       if (mode === 'login') {
         await loginWithEmail(email, password);
       } else {
-        await registerWithEmail(email, password, name);
+        const firebaseUser = await registerWithEmail(email, password, name);
+        // Sync the user with the database after registration
+        await Database.syncUser(firebaseUser, name);
       }
       navigate('/');
     } catch (err: any) {
@@ -56,7 +59,7 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-brand-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-brand-100">
-        <div className="bg-brand-600 p-10 text-white text-center">
+        <div className="bg-brand-500 p-10 text-white text-center">
           <h1 className="text-3xl font-black tracking-tighter uppercase">Downey Staff</h1>
           <p className="text-brand-100 mt-2 text-[10px] font-black tracking-widest uppercase">Portal</p>
         </div>
@@ -68,7 +71,7 @@ export const Login: React.FC = () => {
                 key={m}
                 type="button"
                 onClick={() => { setMode(m); setError(''); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-black uppercase transition-all ${mode === m ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-black uppercase transition-all ${mode === m ? 'bg-white shadow-sm text-brand-500' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 {m}
               </button>
@@ -125,5 +128,5 @@ export const Login: React.FC = () => {
         </div>
       </div>
     </div>
-  ); 
+  );
 };
