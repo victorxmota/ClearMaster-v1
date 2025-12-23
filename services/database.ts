@@ -16,29 +16,32 @@ import { db, storage } from "./firebase";
 import type { FirebaseUser } from "./firebase";
 import { User, UserRole, ScheduleItem, TimeRecord, Office } from "../types";
 
-// Collections
 const USERS_COL = 'users';
 const SCHEDULES_COL = 'schedules';
 const OFFICES_COL = 'offices';
 const RECORDS_COL = 'records';
 
 export const Database = {
-  // --- USER METHODS ---
-  
-  syncUser: async (firebaseUser: FirebaseUser): Promise<User> => {
+  syncUser: async (firebaseUser: FirebaseUser, extraData?: Partial<User>): Promise<User> => {
     const userRef = doc(db, USERS_COL, firebaseUser.uid);
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
-      return userSnap.data() as User;
+      const existingData = userSnap.data();
+      // Se houver dados extras e o usuário já existir, podemos opcionalmente atualizar
+      if (extraData && (Object.keys(extraData).length > 0)) {
+        await updateDoc(userRef, extraData);
+        return { ...existingData, ...extraData } as User;
+      }
+      return existingData as User;
     } else {
       const newUser: User = {
         id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'User',
+        name: extraData?.name || firebaseUser.displayName || 'User',
         email: firebaseUser.email || '',
-        role: UserRole.EMPLOYEE,
-        pps: '',
-        phone: '',
+        role: extraData?.role || UserRole.EMPLOYEE,
+        pps: extraData?.pps || '',
+        phone: extraData?.phone || '',
       };
       await setDoc(userRef, newUser);
       return newUser;
@@ -57,8 +60,6 @@ export const Database = {
     return docSnap.exists() ? (docSnap.data() as User) : null;
   },
 
-  // --- SCHEDULE METHODS ---
-
   getSchedulesByUser: async (userId: string): Promise<ScheduleItem[]> => {
     const q = query(collection(db, SCHEDULES_COL), where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
@@ -73,8 +74,6 @@ export const Database = {
     await deleteDoc(doc(db, SCHEDULES_COL, id));
   },
 
-  // --- OFFICE METHODS ---
-
   getOffices: async (): Promise<Office[]> => {
     const querySnapshot = await getDocs(collection(db, OFFICES_COL));
     return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Office));
@@ -88,18 +87,12 @@ export const Database = {
     await deleteDoc(doc(db, OFFICES_COL, id));
   },
 
-  // --- TIME RECORD METHODS ---
-
   getActiveSession: async (userId: string): Promise<TimeRecord | null> => {
-    const q = query(
-      collection(db, RECORDS_COL), 
-      where("userId", "==", userId)
-    );
+    const q = query(collection(db, RECORDS_COL), where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
     const active = querySnapshot.docs
       .map(doc => ({ ...doc.data(), id: doc.id } as TimeRecord))
       .find(r => !r.endTime);
-    
     return active || null;
   },
 
