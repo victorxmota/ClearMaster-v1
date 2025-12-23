@@ -4,7 +4,6 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { User, UserRole } from './types';
 import { Database } from './services/database';
 import { auth, logoutFirebase } from './services/firebase';
-// Fix: Removed Auth type which was reported as missing from firebase/auth
 import { onAuthStateChanged } from 'firebase/auth';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -12,7 +11,6 @@ import { Agenda } from './pages/Agenda';
 import { CheckIn } from './pages/CheckIn';
 import { Reports } from './pages/Reports';
 import { Profile } from './pages/Profile';
-// Fix: Corrected typo from 'lucide-center' to 'lucide-react'
 import { ShieldAlert } from 'lucide-react';
 
 interface AuthContextType {
@@ -74,7 +72,6 @@ const App: React.FC = () => {
   }
 
   useEffect(() => {
-    // Fix: cast auth to any as Auth type import was reported missing
     const unsubscribe = onAuthStateChanged(auth as any, async (firebaseUser) => {
       if (firebaseUser) {
         try {

@@ -1,0 +1,141 @@
+
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where 
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "./firebase";
+import type { FirebaseUser } from "./firebase";
+import { User, UserRole, ScheduleItem, TimeRecord, Office } from "../types";
+
+// Collections
+const USERS_COL = 'users';
+const SCHEDULES_COL = 'schedules';
+const OFFICES_COL = 'offices';
+const RECORDS_COL = 'records';
+
+export const Database = {
+  // --- USER METHODS ---
+  
+  syncUser: async (firebaseUser: FirebaseUser): Promise<User> => {
+    const userRef = doc(db, USERS_COL, firebaseUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      return userSnap.data() as User;
+    } else {
+      const newUser: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'User',
+        email: firebaseUser.email || '',
+        role: UserRole.EMPLOYEE,
+        pps: '',
+        phone: '',
+      };
+      await setDoc(userRef, newUser);
+      return newUser;
+    }
+  },
+
+  getAllUsers: async (): Promise<User[]> => {
+    const q = query(collection(db, USERS_COL));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as User);
+  },
+
+  getUserById: async (id: string): Promise<User | null> => {
+    const docRef = doc(db, USERS_COL, id);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as User) : null;
+  },
+
+  // --- SCHEDULE METHODS ---
+
+  getSchedulesByUser: async (userId: string): Promise<ScheduleItem[]> => {
+    const q = query(collection(db, SCHEDULES_COL), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ScheduleItem));
+  },
+
+  addSchedule: async (schedule: Omit<ScheduleItem, 'id'>) => {
+    await addDoc(collection(db, SCHEDULES_COL), schedule);
+  },
+
+  deleteSchedule: async (id: string) => {
+    await deleteDoc(doc(db, SCHEDULES_COL, id));
+  },
+
+  // --- OFFICE METHODS ---
+
+  getOffices: async (): Promise<Office[]> => {
+    const querySnapshot = await getDocs(collection(db, OFFICES_COL));
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Office));
+  },
+
+  addOffice: async (office: Omit<Office, 'id'>) => {
+    await addDoc(collection(db, OFFICES_COL), office);
+  },
+
+  deleteOffice: async (id: string) => {
+    await deleteDoc(doc(db, OFFICES_COL, id));
+  },
+
+  // --- TIME RECORD METHODS ---
+
+  getActiveSession: async (userId: string): Promise<TimeRecord | null> => {
+    const q = query(
+      collection(db, RECORDS_COL), 
+      where("userId", "==", userId)
+    );
+    const querySnapshot = await getDocs(q);
+    const active = querySnapshot.docs
+      .map(doc => ({ ...doc.data(), id: doc.id } as TimeRecord))
+      .find(r => !r.endTime);
+    
+    return active || null;
+  },
+
+  getAllRecords: async (): Promise<TimeRecord[]> => {
+    const querySnapshot = await getDocs(collection(db, RECORDS_COL));
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as TimeRecord));
+  },
+
+  getRecordsByUser: async (userId: string): Promise<TimeRecord[]> => {
+    const q = query(collection(db, RECORDS_COL), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as TimeRecord));
+  },
+
+  startShift: async (record: Omit<TimeRecord, 'id' | 'photoUrl'>, photoFile: File): Promise<TimeRecord> => {
+    const photoUrl = await Database.uploadFile(photoFile, `shifts/${record.userId}/start_${Date.now()}`);
+    const docRef = await addDoc(collection(db, RECORDS_COL), {
+      ...record,
+      photoUrl
+    });
+    return { ...record, photoUrl, id: docRef.id };
+  },
+
+  endShift: async (recordId: string, updates: Partial<TimeRecord>, photoFile?: File) => {
+    const dataToUpdate: any = { ...updates };
+    if (photoFile) {
+        const photoUrl = await Database.uploadFile(photoFile, `shifts/end_${recordId}_${Date.now()}`);
+        dataToUpdate.endPhotoUrl = photoUrl;
+    }
+    const docRef = doc(db, RECORDS_COL, recordId);
+    await updateDoc(docRef, dataToUpdate);
+  },
+
+  uploadFile: async (file: File, path: string): Promise<string> => {
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file);
+    return await getDownloadURL(snapshot.ref);
+  }
+};

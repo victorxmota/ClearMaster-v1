@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import { Database } from '../services/database';
@@ -85,7 +86,7 @@ export const Reports: React.FC = () => {
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
     const tableData = filteredRecords.map((rec: TimeRecord) => {
-        const u = users.find((u: User) => u.id === rec.userId);
+        const u = users.find((userObj: User) => userObj.id === rec.userId);
         const start = new Date(rec.startTime).toLocaleTimeString();
         const end = rec.endTime ? new Date(rec.endTime).toLocaleTimeString() : 'In progress';
         return [
