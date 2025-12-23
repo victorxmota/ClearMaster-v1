@@ -65,6 +65,11 @@ export const Database = {
     }
   },
 
+  updateUser: async (userId: string, data: Partial<User>): Promise<void> => {
+    const userRef = doc(db, USERS_COL, userId);
+    await updateDoc(userRef, sanitizeData(data));
+  },
+
   getAllUsers: async (): Promise<User[]> => {
     const q = query(collection(db, USERS_COL));
     const querySnapshot = await getDocs(q);
