@@ -1,23 +1,21 @@
 
 import { initializeApp } from "firebase/app";
-// Fix: Removed User and Auth types which were reported as missing from firebase/auth
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-// Fix: Removed Firestore type which was reported as missing from firebase/firestore
 import { getFirestore } from "firebase/firestore";
-// Fix: Removed FirebaseStorage type which was reported as missing from firebase/storage
 import { getStorage } from "firebase/storage";
 
-// Safe environment variable access
-// Using type assertion to any to bypass missing ImportMeta interface definition for env
-const env = (import.meta as any).env || {};
-
+/**
+ * Configuração do Firebase Downey Cleaning
+ * Inserida diretamente para garantir funcionamento em ambientes de produção (GitHub Pages)
+ */
 const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyCs1NAMdvtuiWzbYMohY0aZa2AiS9z8uNw",
+  authDomain: "downey-cleaning.firebaseapp.com",
+  projectId: "downey-cleaning",
+  storageBucket: "downey-cleaning.firebasestorage.app",
+  messagingSenderId: "1001041748354",
+  appId: "1:1001041748354:web:6f6ea1b637b8be84e2ef9b",
+  measurementId: "G-MMZD70R02H"
 };
 
 let app;
@@ -25,42 +23,46 @@ let auth: any;
 let db: any;
 let storage: any;
 
-// Só inicializa se houver uma API Key definida para evitar o erro "auth/invalid-api-key"
-if (firebaseConfig.apiKey) {
-  try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
-  } catch (error) {
-    console.error("Erro ao inicializar Firebase:", error);
-  }
-} else {
-  console.warn("Firebase config missing. App will allow render but services will fail.");
+try {
+  // Inicialização do Firebase com as chaves oficiais
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+} catch (error) {
+  console.error("Erro ao inicializar serviços do Firebase:", error);
 }
 
 const googleProvider = new GoogleAuthProvider();
 
+/**
+ * Realiza o login utilizando o provedor do Google
+ */
 export const signInWithGoogle = async () => {
-  if (!auth) throw new Error("Firebase não está configurado. Verifique o console.");
+  if (!auth) {
+    throw new Error("O serviço de autenticação não foi inicializado corretamente.");
+  }
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error) {
-    console.error("Error signing in with Google", error);
+    console.error("Erro no login com Google:", error);
     throw error;
   }
 };
 
+/**
+ * Realiza o logout do usuário atual
+ */
 export const logoutFirebase = async () => {
   if (!auth) return;
   try {
     await signOut(auth);
   } catch (error) {
-    console.error("Error signing out", error);
+    console.error("Erro ao realizar logout:", error);
   }
 };
 
 export { auth, db, storage };
-// Fix: Export FirebaseUser as any since it was missing from the import
+// Tipo genérico para evitar conflitos de versão do SDK durante a compilação
 export type FirebaseUser = any;
