@@ -28,7 +28,6 @@ export const Database = {
 
     if (userSnap.exists()) {
       const existingData = userSnap.data();
-      // Se houver dados extras e o usuário já existir, podemos opcionalmente atualizar
       if (extraData && (Object.keys(extraData).length > 0)) {
         await updateDoc(userRef, extraData);
         return { ...existingData, ...extraData } as User;
@@ -52,12 +51,6 @@ export const Database = {
     const q = query(collection(db, USERS_COL));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => doc.data() as User);
-  },
-
-  getUserById: async (id: string): Promise<User | null> => {
-    const docRef = doc(db, USERS_COL, id);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? (docSnap.data() as User) : null;
   },
 
   getSchedulesByUser: async (userId: string): Promise<ScheduleItem[]> => {
@@ -107,8 +100,11 @@ export const Database = {
     return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as TimeRecord));
   },
 
-  startShift: async (record: Omit<TimeRecord, 'id' | 'photoUrl'>, photoFile: File): Promise<TimeRecord> => {
-    const photoUrl = await Database.uploadFile(photoFile, `shifts/${record.userId}/start_${Date.now()}`);
+  startShift: async (record: Omit<TimeRecord, 'id' | 'photoUrl'>, photoFile?: File): Promise<TimeRecord> => {
+    let photoUrl = undefined;
+    if (photoFile) {
+        photoUrl = await Database.uploadFile(photoFile, `shifts/${record.userId}/start_${Date.now()}`);
+    }
     const docRef = await addDoc(collection(db, RECORDS_COL), {
       ...record,
       photoUrl
