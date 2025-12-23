@@ -11,11 +11,15 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["*", "pages/*", "components/*", "services/*", "context/*"]
+    },
     "types": ["vite/client"]
   },
   "include": ["."],

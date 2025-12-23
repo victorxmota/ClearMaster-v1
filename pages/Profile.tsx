@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../App';
+import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import { User as UserIcon, Phone, Mail, CreditCard, Shield, Edit2, Save, X, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -23,14 +23,12 @@ export const Profile: React.FC = () => {
 
   if (!user) return null;
 
-  // Lógica: Primeiro + Último nome. Ex: "Fulano Siclano Junior" -> "FulanoJunior"
   const getAccountId = (fullName: string) => {
     const names = fullName.trim().split(/\s+/);
     if (names.length === 0) return 'User';
     if (names.length === 1) return names[0];
     const first = names[0];
     const last = names[names.length - 1];
-    // Remove caracteres especiais e espaços se houver
     return `${first}${last}`.replace(/[^a-zA-Z0-9]/g, '');
   };
 
@@ -42,13 +40,9 @@ export const Profile: React.FC = () => {
     
     setIsSaving(true);
     try {
-      await Database.updateUser(user.id, {
-        email: editEmail,
-        phone: editPhone
-      });
+      await Database.updateUser(user.id, { email: editEmail, phone: editPhone });
       alert('Profile updated successfully!');
       setIsEditing(false);
-      // Recarrega para refletir mudanças do Firestore
       window.location.reload(); 
     } catch (error: any) {
       console.error("Error updating profile", error);
@@ -72,7 +66,7 @@ export const Profile: React.FC = () => {
           <div className="absolute top-4 right-4">
             {!isEditing ? (
               <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit2 size={16} className="mr-2" /> Edit Profile
+                <Edit2 size={16} className="mr-2" /> Edit Info
               </Button>
             ) : (
               <div className="flex gap-2">
@@ -104,13 +98,7 @@ export const Profile: React.FC = () => {
               <div className="flex-1">
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Official Email</p>
                 {isEditing ? (
-                  <input 
-                    type="email"
-                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700"
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    autoFocus
-                  />
+                  <input type="email" className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} autoFocus />
                 ) : (
                   <p className="font-medium text-gray-800">{user.email}</p>
                 )}
@@ -122,12 +110,7 @@ export const Profile: React.FC = () => {
               <div className="flex-1">
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Contact Number</p>
                 {isEditing ? (
-                  <input 
-                    type="tel"
-                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                  />
+                  <input type="tel" className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
                 ) : (
                   <p className="font-medium text-gray-800">{user.phone}</p>
                 )}
@@ -152,12 +135,7 @@ export const Profile: React.FC = () => {
           </div>
 
           <div className="mt-10 border-t border-gray-100 pt-6">
-            <div className="bg-gray-50 p-4 rounded-lg text-xs text-gray-400 mb-6 italic">
-              User Unique Reference: {user.id}
-            </div>
-            <Button variant="danger" onClick={logout} className="w-full md:w-auto">
-              Logout System
-            </Button>
+            <Button variant="danger" onClick={logout} className="w-full md:w-auto">Logout System</Button>
           </div>
         </div>
       </div>

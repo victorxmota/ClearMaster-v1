@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../App';
+import { useAuth } from '../context/AuthContext';
 import { Database } from '../services/database';
 import { TimeRecord, UserRole, User, SafetyChecklist } from '../types';
 import { Button } from '../components/ui/Button';
@@ -10,7 +10,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, startOfWeek, endOfWeek, parseISO } from 'date-fns';
 
-// Mapeamento de chaves técnicas para nomes legíveis
 const SAFETY_LABELS: Record<keyof SafetyChecklist, string> = {
   knowJobSafety: "Job Safety",
   weatherCheck: "Weather",
