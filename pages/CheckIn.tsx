@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../App';
 import { Database } from '../services/database';
-import { TimeRecord } from '../types';
+import { TimeRecord, SafetyChecklist } from '../types';
 import { Button } from '../components/ui/Button';
 import { Camera, ShieldCheck, PlayCircle, StopCircle, Check, MapPin, Loader2 } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export const CheckIn: React.FC = () => {
   const [endPhotoPreview, setEndPhotoPreview] = useState<string | null>(null);
   const [endPhotoFile, setEndPhotoFile] = useState<File | null>(null);
 
-  const [checklist, setChecklist] = useState({
+  const [checklist, setChecklist] = useState<SafetyChecklist>({
     gloves: false,
     boots: false,
     vest: false,
@@ -40,7 +40,12 @@ export const CheckIn: React.FC = () => {
         if (session) {
           setActiveSession(session);
           setLocationName(session.locationName);
-          setChecklist(session.safetyChecklist);
+          
+          // Verificação explícita para garantir que o checklist existe e corresponde ao tipo
+          if (session.safetyChecklist) {
+            setChecklist(session.safetyChecklist);
+          }
+          
           setPhotoPreview(session.photoUrl || null);
         }
 
@@ -120,7 +125,6 @@ export const CheckIn: React.FC = () => {
   };
 
   const handleStartShift = async () => {
-    // A verificação abaixo garante que user e photoFile não sejam nulos para o bloco seguinte
     if (!user || !locationName || !photoFile) {
       alert("Location and Photo are required.");
       return;
@@ -130,7 +134,7 @@ export const CheckIn: React.FC = () => {
     const location = await getCurrentLocation();
     
     try {
-        const recordData: any = {
+        const recordData: Omit<TimeRecord, 'id' | 'photoUrl'> = {
           userId: user.id,
           locationName,
           startTime: new Date().toISOString(),
@@ -139,8 +143,7 @@ export const CheckIn: React.FC = () => {
           startLocation: location || undefined
         };
 
-        // Usamos o operador '!' para afirmar ao TS que photoFile não é nulo (já verificado acima)
-        const newRecord = await Database.startShift(recordData, photoFile!);
+        const newRecord = await Database.startShift(recordData, photoFile);
         setActiveSession(newRecord);
     } catch (error) {
         console.error(error);
@@ -160,11 +163,10 @@ export const CheckIn: React.FC = () => {
     const location = await getCurrentLocation();
 
     try {
-      // endPhotoFile || undefined converte null para undefined para satisfazer a tipagem opcional (File | undefined)
       await Database.endShift(activeSession.id, {
         endTime: new Date().toISOString(),
         endLocation: location || undefined
-      }, endPhotoFile || undefined);
+      }, endPhotoFile);
       
       setActiveSession(null);
       setPhotoPreview(null);
@@ -181,7 +183,7 @@ export const CheckIn: React.FC = () => {
     }
   };
 
-  const toggleCheck = (key: keyof typeof checklist) => {
+  const toggleCheck = (key: keyof SafetyChecklist) => {
     if (!activeSession) {
       setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
     }
@@ -207,17 +209,17 @@ export const CheckIn: React.FC = () => {
           ].map((item) => (
             <button
               key={item.key}
-              onClick={() => toggleCheck(item.key as keyof typeof checklist)}
+              onClick={() => toggleCheck(item.key as keyof SafetyChecklist)}
               disabled={!!activeSession}
               className={`
                 flex items-center justify-between p-4 rounded-lg border-2 transition-all
-                ${checklist[item.key as keyof typeof checklist] 
+                ${checklist[item.key as keyof SafetyChecklist] 
                   ? 'border-green-500 bg-green-50 text-green-700' 
                   : 'border-gray-200 text-gray-500 hover:border-brand-200'}
               `}
             >
               <span className="font-medium">{item.label}</span>
-              {checklist[item.key as keyof typeof checklist] && <Check size={20} />}
+              {checklist[item.key as keyof SafetyChecklist] && <Check size={20} />}
             </button>
           ))}
         </div>

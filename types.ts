@@ -9,9 +9,9 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  pps: string;
+  pps: string; // Personal Public Service Number
   phone: string;
-  password?: string;
+  password?: string; // In a real app, never store plain text
 }
 
 export interface ScheduleItem {
@@ -19,7 +19,7 @@ export interface ScheduleItem {
   userId: string;
   locationName: string;
   address: string;
-  dayOfWeek: number;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
   hoursPerDay: number;
 }
 
@@ -34,7 +34,7 @@ export interface Office {
   name: string;
   eircode: string;
   address: string;
-  defaultSchedule: OfficeScheduleConfig[];
+  defaultSchedule: OfficeScheduleConfig[]; // Stores the days and hours configuration
 }
 
 export interface GeoLocation {
@@ -43,58 +43,25 @@ export interface GeoLocation {
 }
 
 export interface SafetyChecklist {
-  // PPE
-  highVis: boolean;
-  helmet: boolean;
-  goggles: boolean;
   gloves: boolean;
-  mask: boolean;
-  earMuffs: boolean;
-  faceGuard: boolean;
-  harness: boolean;
   boots: boolean;
-
-  // Safety Plan
-  knowSafeJob: boolean;
-  weatherCheck: boolean;
-  safePassInDate: boolean;
-  slipTripAware: boolean;
-  wetFloorsCleaned: boolean;
-
-  // Lifting
-  manualHandlingCert: boolean;
-  heavyLiftingAssistance: boolean;
-
-  // Working at Heights
-  anchorPointsTie: boolean;
-  ladderFooted: boolean;
-  safetySigns: boolean;
-  commWithOthers: boolean;
-
-  // Equipment
-  ladderCheck: boolean;
-  sharpEdgesCheck: boolean;
-  scraperBladeCovers: boolean;
-  hotSurfacesCheck: boolean;
-  chemicalCourseComplete: boolean;
-  chemicalDilutionAware: boolean;
-  equipmentTidy: boolean;
-  laddersPutAway: boolean;
+  vest: boolean;
+  chemicalsSafe: boolean;
 }
 
 export interface TimeRecord {
   id: string;
   userId: string;
-  scheduleId?: string;
+  scheduleId?: string; // Optional linkage to a planned schedule
   locationName: string;
-  startTime: string;
-  endTime?: string;
-  date: string;
+  startTime: string; // ISO String
+  endTime?: string; // ISO String
+  date: string; // YYYY-MM-DD
   safetyChecklist: SafetyChecklist;
-  photoUrl?: string;
-  endPhotoUrl?: string;
-  startLocation?: GeoLocation;
-  endLocation?: GeoLocation;
+  photoUrl?: string; // Start Base64 or URL
+  endPhotoUrl?: string; // End Base64 or URL
+  startLocation?: GeoLocation; // Latitude/Longitude at start
+  endLocation?: GeoLocation;   // Latitude/Longitude at end
   notes?: string;
 }
 
