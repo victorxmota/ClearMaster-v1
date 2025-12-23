@@ -18,10 +18,11 @@ import {
   Activity, 
   Construction, 
   Box, 
-  AlertTriangle 
+  AlertTriangle,
+  ChevronDown,
+  Edit2
 } from 'lucide-react';
 
-// Valores iniciais para o novo checklist completo
 const INITIAL_CHECKLIST: SafetyChecklist = {
   knowJobSafety: false,
   weatherCheck: false,
@@ -57,6 +58,7 @@ export const CheckIn: React.FC = () => {
   const { user } = useAuth();
   const [activeSession, setActiveSession] = useState<TimeRecord | null>(null);
   const [locationName, setLocationName] = useState('');
+  const [isManualLocation, setIsManualLocation] = useState(false);
   const [availableLocations, setAvailableLocations] = useState<{name: string, address: string}[]>([]);
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -81,7 +83,6 @@ export const CheckIn: React.FC = () => {
           setActiveSession(session);
           setLocationName(session.locationName);
           if (session.safetyChecklist) {
-            // Merge com o padrão para evitar quebras de versão se campos novos forem adicionados
             setChecklist({ ...INITIAL_CHECKLIST, ...session.safetyChecklist });
           }
           setPhotoPreview(session.photoUrl || null);
@@ -95,10 +96,12 @@ export const CheckIn: React.FC = () => {
           }
         });
         
-        setAvailableLocations(Array.from(uniqueLocs.entries()).map(([name, address]) => ({
-          name,
-          address
-        })));
+        const locArray = Array.from(uniqueLocs.entries()).map(([name, address]) => ({ name, address }));
+        setAvailableLocations(locArray);
+        
+        if (locArray.length === 0) {
+          setIsManualLocation(true);
+        }
       } catch (e) {
         console.error("Error initializing check-in", e);
       } finally {
@@ -154,35 +157,44 @@ export const CheckIn: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         (err) => resolve(null),
-        { enableHighAccuracy: true, timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 4000 }
       );
     });
   };
 
   const handleStartShift = async () => {
-    if (!user || !locationName) {
-      alert("Location is required.");
+    if (!user || !locationName.trim()) {
+      alert("Please select or type a location.");
       return;
     }
 
+    // Opcional: Validar se ao menos alguns itens do checklist foram marcados
+    const checkedCount = Object.values(checklist).filter(v => v === true).length;
+    if (checkedCount < 5) {
+      if (!confirm("You have very few items checked in the safety plan. Are you sure you want to proceed?")) return;
+    }
+
     setIsProcessing(true);
-    const location = await getCurrentLocation();
     
     try {
+        const location = await getCurrentLocation();
+        
         const recordData: Omit<TimeRecord, 'id' | 'photoUrl'> = {
           userId: user.id,
-          locationName,
+          locationName: locationName.trim(),
           startTime: new Date().toISOString(),
           date: new Date().toISOString().split('T')[0],
-          safetyChecklist: checklist,
+          safetyChecklist: { ...checklist },
           startLocation: location || undefined
         };
 
         const newRecord = await Database.startShift(recordData, photoFile || undefined);
         setActiveSession(newRecord);
-    } catch (error) {
-        console.error(error);
-        alert("Error starting shift.");
+        // Reset local previews
+        setPhotoFile(null);
+    } catch (error: any) {
+        console.error("Failed to start shift:", error);
+        alert(`Error: ${error.message || "Could not start shift. Check your connection."}`);
     } finally {
         setIsProcessing(false);
     }
@@ -192,9 +204,8 @@ export const CheckIn: React.FC = () => {
     if (!activeSession) return;
     
     setIsProcessing(true);
-    const location = await getCurrentLocation();
-
     try {
+      const location = await getCurrentLocation();
       await Database.endShift(activeSession.id, {
         endTime: new Date().toISOString(),
         endLocation: location || undefined
@@ -207,9 +218,9 @@ export const CheckIn: React.FC = () => {
       setEndPhotoFile(null);
       setLocationName('');
       setChecklist(INITIAL_CHECKLIST);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Error ending shift.");
+      alert(`Error ending shift: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -251,16 +262,28 @@ export const CheckIn: React.FC = () => {
     </button>
   );
 
-  if (initializing) return <div className="text-center p-8">Loading safety context...</div>;
+  if (initializing) return (
+    <div className="flex flex-col items-center justify-center p-20 space-y-4">
+      <Loader2 className="animate-spin text-brand-600" size={48} />
+      <p className="text-gray-500 font-medium">Loading security protocols...</p>
+    </div>
+  );
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20">
-      <header>
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <ShieldCheck className="text-brand-600" />
-          Safety Plan of Action
-        </h2>
-        <p className="text-gray-500 text-sm italic mt-1">"Safety is our own responsibility. Take 20 seconds to be aware of hazards."</p>
+      <header className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <ShieldCheck className="text-brand-600" />
+            Safety Plan of Action
+          </h2>
+          <p className="text-gray-500 text-sm italic mt-1">"Safety is our own responsibility. Take 20 seconds to be aware of hazards."</p>
+        </div>
+        {activeSession && (
+          <div className="bg-brand-900 text-white px-4 py-2 rounded-full font-mono font-bold animate-pulse">
+            {formatTime(elapsedTime)}
+          </div>
+        )}
       </header>
 
       {/* Checklist Sections */}
@@ -320,7 +343,7 @@ export const CheckIn: React.FC = () => {
               className={`
                 flex flex-col items-center justify-center p-2 rounded-lg border-2 transition-all
                 ${checklist[ppe.id as keyof SafetyChecklist] 
-                  ? 'border-brand-500 bg-brand-50' 
+                  ? 'border-brand-500 bg-brand-50 shadow-inner' 
                   : 'border-gray-100 bg-gray-50 opacity-60'}
               `}
             >
@@ -337,28 +360,53 @@ export const CheckIn: React.FC = () => {
       {!activeSession && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1 uppercase tracking-tight">Work Location</label>
-            <div className="relative">
-              <select
-                className="w-full rounded-md border-gray-300 p-3 appearance-none bg-white border font-medium"
-                value={locationName}
-                onChange={(e) => setLocationName(e.target.value)}
+            <div className="flex justify-between items-end mb-1">
+              <label className="block text-sm font-bold text-gray-700 uppercase tracking-tight">Work Location</label>
+              <button 
+                onClick={() => setIsManualLocation(!isManualLocation)}
+                className="text-xs text-brand-600 font-bold flex items-center gap-1 hover:underline"
               >
-                <option value="">Select current office...</option>
-                {availableLocations.map((loc, idx) => (
-                  <option key={idx} value={loc.name}>{loc.name} - {loc.address}</option>
-                ))}
-              </select>
+                {isManualLocation ? <ChevronDown size={14}/> : <Edit2 size={14}/>}
+                {isManualLocation ? "Select from list" : "Type manually"}
+              </button>
+            </div>
+            <div className="relative">
+              {isManualLocation ? (
+                <input
+                  type="text"
+                  placeholder="Type office name or address..."
+                  className="w-full rounded-md border-gray-300 p-3 bg-white border font-medium"
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                />
+              ) : (
+                <select
+                  className="w-full rounded-md border-gray-300 p-3 appearance-none bg-white border font-medium"
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                >
+                  <option value="">Select current office...</option>
+                  {availableLocations.map((loc, idx) => (
+                    <option key={idx} value={loc.name}>{loc.name} - {loc.address}</option>
+                  ))}
+                </select>
+              )}
               <MapPin className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" size={20} />
             </div>
           </div>
           
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">Start Photo (Optional)</label>
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  {photoPreview ? <img src={photoPreview} alt="Preview" className="h-28 object-contain" /> : <Camera className="w-8 h-8 text-gray-400" />}
-                  {!photoPreview && <p className="text-xs text-gray-400 mt-2">Click to take/upload photo</p>}
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="h-28 object-contain rounded shadow-sm" />
+                  ) : (
+                    <>
+                      <Camera className="w-8 h-8 text-gray-400" />
+                      <p className="text-xs text-gray-400 mt-2">Click to take/upload photo</p>
+                    </>
+                  )}
                 </div>
                 <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, false)} />
             </label>
@@ -366,19 +414,24 @@ export const CheckIn: React.FC = () => {
         </div>
       )}
 
-      <div className={`p-8 rounded-xl text-center transition-all ${activeSession ? 'bg-brand-900 text-white' : 'bg-brand-100'}`}>
+      <div className={`p-8 rounded-xl text-center transition-all shadow-lg ${activeSession ? 'bg-brand-900 text-white' : 'bg-brand-100'}`}>
         {activeSession ? (
           <div className="space-y-6">
-             <div>
+             <div className="animate-pulse">
                 <p className="text-brand-300 font-bold uppercase tracking-widest text-xs mb-1">Shift in Progress</p>
                 <div className="text-5xl font-mono font-bold tracking-tighter">{formatTime(elapsedTime)}</div>
+                <p className="text-brand-400 text-sm mt-2">{activeSession.locationName}</p>
              </div>
              
-             <div className="bg-white/10 p-4 rounded-lg text-left">
+             <div className="bg-white/10 p-4 rounded-lg text-left border border-white/5">
                 <label className="block text-xs font-bold text-brand-200 mb-2 uppercase tracking-widest">End Photo (Optional)</label>
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-brand-700 border-dashed rounded-lg cursor-pointer hover:bg-white/5">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {endPhotoPreview ? <img src={endPhotoPreview} alt="Preview" className="h-28 object-contain" /> : <Camera className="w-8 h-8 text-brand-400" />}
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-brand-700 border-dashed rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                    {endPhotoPreview ? (
+                      <img src={endPhotoPreview} alt="Preview" className="h-28 object-contain rounded shadow-sm" />
+                    ) : (
+                      <Camera className="w-8 h-8 text-brand-400" />
+                    )}
                   </div>
                   <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handlePhotoSelect(e, true)} />
                 </label>
@@ -388,21 +441,25 @@ export const CheckIn: React.FC = () => {
                 onClick={handleEndShift} 
                 variant="danger" 
                 size="lg" 
-                className="w-full shadow-lg"
+                className="w-full shadow-xl"
                 disabled={isProcessing}
              >
                  {isProcessing ? <Loader2 className="animate-spin mr-2"/> : <StopCircle className="mr-2"/>} Complete Shift
              </Button>
           </div>
         ) : (
-          <Button 
-            onClick={handleStartShift} 
-            size="lg" 
-            className="w-full shadow-md"
-            disabled={isProcessing}
-            >
-            {isProcessing ? <Loader2 className="animate-spin mr-2"/> : <PlayCircle className="mr-2"/>} Submit Plan & Start
-          </Button>
+          <div className="space-y-4">
+            <Button 
+              onClick={handleStartShift} 
+              size="lg" 
+              className="w-full shadow-md py-4 text-xl"
+              disabled={isProcessing}
+              >
+              {isProcessing ? <Loader2 className="animate-spin mr-2"/> : <PlayCircle className="mr-2"/>} 
+              {isProcessing ? "Processing..." : "Submit Plan & Start"}
+            </Button>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Downey Cleaning Services Official Portal</p>
+          </div>
         )}
       </div>
     </div>

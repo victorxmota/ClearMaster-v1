@@ -21,6 +21,23 @@ const SCHEDULES_COL = 'schedules';
 const OFFICES_COL = 'offices';
 const RECORDS_COL = 'records';
 
+/**
+ * Remove campos undefined de um objeto para evitar erros no Firestore
+ */
+const sanitizeData = (data: any) => {
+  const clean: any = {};
+  Object.keys(data).forEach(key => {
+    if (data[key] === undefined) {
+      clean[key] = null;
+    } else if (typeof data[key] === 'object' && data[key] !== null && !Array.isArray(data[key])) {
+      clean[key] = sanitizeData(data[key]);
+    } else {
+      clean[key] = data[key];
+    }
+  });
+  return clean;
+};
+
 export const Database = {
   syncUser: async (firebaseUser: FirebaseUser, extraData?: Partial<User>): Promise<User> => {
     const userRef = doc(db, USERS_COL, firebaseUser.uid);
@@ -29,7 +46,8 @@ export const Database = {
     if (userSnap.exists()) {
       const existingData = userSnap.data();
       if (extraData && (Object.keys(extraData).length > 0)) {
-        await updateDoc(userRef, extraData);
+        const cleanExtra = sanitizeData(extraData);
+        await updateDoc(userRef, cleanExtra);
         return { ...existingData, ...extraData } as User;
       }
       return existingData as User;
@@ -42,7 +60,7 @@ export const Database = {
         pps: extraData?.pps || '',
         phone: extraData?.phone || '',
       };
-      await setDoc(userRef, newUser);
+      await setDoc(userRef, sanitizeData(newUser));
       return newUser;
     }
   },
@@ -60,7 +78,7 @@ export const Database = {
   },
 
   addSchedule: async (schedule: Omit<ScheduleItem, 'id'>) => {
-    await addDoc(collection(db, SCHEDULES_COL), schedule);
+    await addDoc(collection(db, SCHEDULES_COL), sanitizeData(schedule));
   },
 
   deleteSchedule: async (id: string) => {
@@ -73,7 +91,7 @@ export const Database = {
   },
 
   addOffice: async (office: Omit<Office, 'id'>) => {
-    await addDoc(collection(db, OFFICES_COL), office);
+    await addDoc(collection(db, OFFICES_COL), sanitizeData(office));
   },
 
   deleteOffice: async (id: string) => {
@@ -101,15 +119,18 @@ export const Database = {
   },
 
   startShift: async (record: Omit<TimeRecord, 'id' | 'photoUrl'>, photoFile?: File): Promise<TimeRecord> => {
-    let photoUrl = undefined;
+    let photoUrl = null;
     if (photoFile) {
         photoUrl = await Database.uploadFile(photoFile, `shifts/${record.userId}/start_${Date.now()}`);
     }
-    const docRef = await addDoc(collection(db, RECORDS_COL), {
+    
+    const finalData = sanitizeData({
       ...record,
       photoUrl
     });
-    return { ...record, photoUrl, id: docRef.id };
+
+    const docRef = await addDoc(collection(db, RECORDS_COL), finalData);
+    return { ...finalData, id: docRef.id };
   },
 
   endShift: async (recordId: string, updates: Partial<TimeRecord>, photoFile?: File) => {
@@ -119,7 +140,7 @@ export const Database = {
         dataToUpdate.endPhotoUrl = photoUrl;
     }
     const docRef = doc(db, RECORDS_COL, recordId);
-    await updateDoc(docRef, dataToUpdate);
+    await updateDoc(docRef, sanitizeData(dataToUpdate));
   },
 
   uploadFile: async (file: File, path: string): Promise<string> => {
