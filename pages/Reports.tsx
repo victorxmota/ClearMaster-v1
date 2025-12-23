@@ -110,7 +110,7 @@ export const Reports: React.FC = () => {
   };
 
   const formatGPS = (loc?: {lat: number, lng: number}) => {
-    if (!loc) return 'Not recorded';
+    if (!loc) return 'N/A';
     return `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`;
   };
 
@@ -119,7 +119,7 @@ export const Reports: React.FC = () => {
     const checked = Object.entries(checklist)
       .filter(([_, value]) => value === true)
       .map(([key]) => SAFETY_LABELS[key as keyof SafetyChecklist] || key);
-    return checked.length > 0 ? checked.join(', ') : 'None selected';
+    return checked.length > 0 ? checked.join(', ') : 'None';
   };
 
   const exportPDF = () => {
@@ -134,7 +134,6 @@ export const Reports: React.FC = () => {
     doc.setTextColor(100);
     doc.text(`Staff Member: ${reportUser?.name || 'N/A'}`, 14, 22);
     doc.text(`Report Period: ${format(new Date(), 'MMMM yyyy')}`, 14, 27);
-    doc.text(`Generated on: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 32);
     
     const tableData = filteredRecords
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
@@ -153,16 +152,15 @@ export const Reports: React.FC = () => {
     });
 
     autoTable(doc, {
-      head: [['Date', 'Site', 'Shift', 'Safety Items Checked', 'GPS In', 'GPS Out', 'Status']],
+      head: [['Date', 'Site', 'Shift', 'Safety Check', 'GPS In', 'GPS Out', 'Status']],
       body: tableData,
       startY: 38,
       styles: { fontSize: 7, cellPadding: 2 },
-      columnStyles: { 3: { cellWidth: 80 } },
+      columnStyles: { 3: { cellWidth: 70 } },
       headStyles: { fillColor: [12, 74, 110] }, 
     });
 
-    const fileName = `Downey_Report_${reportUser?.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
-    doc.save(fileName);
+    doc.save(`Report_${reportUser?.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin text-brand-600" size={32}/></div>;
@@ -172,7 +170,7 @@ export const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Service Reports</h2>
-          <p className="text-gray-500">History for <strong>{users.find(u => u.id === selectedUserFilter)?.name || 'selected users'}</strong></p>
+          <p className="text-gray-500">Service logs for team members</p>
         </div>
         <div className="flex flex-wrap gap-2">
             {user?.role === UserRole.ADMIN && (
@@ -181,17 +179,11 @@ export const Reports: React.FC = () => {
                     {users.map((u: User) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
             )}
-            <Button variant="primary" onClick={exportPDF} size="sm" className="shadow-sm"><FileDown size={18} className="mr-2" /> Export PDF</Button>
+            <Button variant="primary" onClick={exportPDF} size="sm"><FileDown size={18} className="mr-2" /> Export PDF</Button>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <FileText className="text-brand-600" />
-                <h3 className="font-bold text-gray-800">History Log</h3>
-            </div>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
@@ -200,7 +192,7 @@ export const Reports: React.FC = () => {
                         <th className="p-4">Location</th>
                         <th className="p-4">Shift</th>
                         <th className="p-4">Safety Items</th>
-                        <th className="p-4">GPS Entry/Exit</th>
+                        <th className="p-4">GPS Log</th>
                         <th className="p-4">Status</th>
                     </tr>
                 </thead>
@@ -210,21 +202,21 @@ export const Reports: React.FC = () => {
                             <td className="p-4 font-mono font-medium text-gray-600">{format(parseISO(record.date), 'dd/MM/yyyy')}</td>
                             <td className="p-4 font-bold text-gray-900">{record.locationName}</td>
                             <td className="p-4 whitespace-nowrap">
-                                <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">
+                                <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold text-gray-600">
                                     {format(parseISO(record.startTime), 'HH:mm')} - {record.endTime ? format(parseISO(record.endTime), 'HH:mm') : '...'}
                                 </span>
                             </td>
                             <td className="p-4">
                                 <div className="flex items-center gap-1 text-brand-600">
                                     <ShieldCheck size={14} />
-                                    <span className="text-[10px] max-w-[150px] truncate" title={getSafetySummary(record.safetyChecklist)}>
+                                    <span className="text-[10px] max-w-[120px] truncate" title={getSafetySummary(record.safetyChecklist)}>
                                         {Object.values(record.safetyChecklist || {}).filter(v => v === true).length} items
                                     </span>
                                 </div>
                             </td>
                             <td className="p-4 font-mono text-[9px] text-gray-400">
-                                <div>{formatGPS(record.startLocation)}</div>
-                                <div>{formatGPS(record.endLocation)}</div>
+                                <div>IN: {formatGPS(record.startLocation)}</div>
+                                <div>OUT: {formatGPS(record.endLocation)}</div>
                             </td>
                             <td className="p-4">
                                 <span className={`inline-flex px-2 py-1 rounded-md text-[10px] font-bold uppercase ${record.endTime ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700 animate-pulse'}`}>
