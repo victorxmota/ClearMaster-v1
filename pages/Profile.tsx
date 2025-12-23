@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../App';
-import { UserRole, User as UserType } from '../types';
+import { UserRole } from '../types';
 import { User, Phone, Mail, CreditCard, Shield, Edit2, Save, X, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Database } from '../services/database';
 
 export const Profile: React.FC = () => {
@@ -36,22 +35,24 @@ export const Profile: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!editEmail || !editPhone) {
+      alert("Email and Phone are required.");
+      return;
+    }
+    
     setIsSaving(true);
     try {
       await Database.updateUser(user.id, {
         email: editEmail,
         phone: editPhone
       });
-      // Em uma aplicação real, você atualizaria o contexto global aqui. 
-      // Como o App.tsx escuta onAuthStateChanged e syncUser, uma alternativa é forçar o reload ou apenas notificar o sucesso.
       alert('Profile updated successfully!');
       setIsEditing(false);
-      // Para fins de demonstração, vamos apenas fechar a edição. 
-      // Em produção, o ideal é que o AuthContext recarregue os dados do Firestore.
-      window.location.reload(); // Recarrega para puxar dados novos do Firestore através do App.tsx
-    } catch (error) {
+      // Recarrega para refletir as mudanças que vêm do Firestore no App.tsx
+      window.location.reload(); 
+    } catch (error: any) {
       console.error("Error updating profile", error);
-      alert('Failed to update profile.');
+      alert(`Failed to update profile: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -71,11 +72,11 @@ export const Profile: React.FC = () => {
           <div className="absolute top-4 right-4">
             {!isEditing ? (
               <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit2 size={16} className="mr-2" /> Edit Profile
+                <Edit2 size={16} className="mr-2" /> Edit Info
               </Button>
             ) : (
               <div className="flex gap-2">
-                <Button variant="danger" size="sm" onClick={() => setIsEditing(false)}>
+                <Button variant="danger" size="sm" onClick={() => setIsEditing(false)} disabled={isSaving}>
                   <X size={16} className="mr-2" /> Cancel
                 </Button>
                 <Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving}>
@@ -98,16 +99,17 @@ export const Profile: React.FC = () => {
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-transparent transition-all">
+            <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100' : 'bg-gray-50 border-transparent'}`}>
               <Mail className="text-gray-400 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Official Email</p>
                 {isEditing ? (
                   <input 
                     type="email"
-                    className="w-full bg-white border border-gray-300 rounded px-2 py-1 mt-1 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-medium focus:ring-0 outline-none text-gray-800"
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
+                    autoFocus
                   />
                 ) : (
                   <p className="font-medium text-gray-800">{user.email}</p>
@@ -115,14 +117,14 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-transparent transition-all">
+            <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100' : 'bg-gray-50 border-transparent'}`}>
               <Phone className="text-gray-400 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Contact Number</p>
                 {isEditing ? (
                   <input 
                     type="tel"
-                    className="w-full bg-white border border-gray-300 rounded px-2 py-1 mt-1 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-medium focus:ring-0 outline-none text-gray-800"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                   />
@@ -132,11 +134,11 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-transparent">
               <CreditCard className="text-gray-400 flex-shrink-0" />
               <div>
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">PPS Number</p>
-                <p className="font-medium text-gray-800">{user.pps}</p>
+                <p className="font-medium text-gray-800">{user.pps || 'Not provided'}</p>
               </div>
             </div>
 

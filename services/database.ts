@@ -66,6 +66,7 @@ export const Database = {
   },
 
   updateUser: async (userId: string, data: Partial<User>): Promise<void> => {
+    if (!db) throw new Error("Database not initialized");
     const userRef = doc(db, USERS_COL, userId);
     await updateDoc(userRef, sanitizeData(data));
   },

@@ -2,13 +2,45 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import { Database } from '../services/database';
-import { TimeRecord, UserRole, User } from '../types';
+import { TimeRecord, UserRole, User, SafetyChecklist } from '../types';
 import { Button } from '../components/ui/Button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { FileDown, FileText, Loader2, MapPin } from 'lucide-react';
+import { FileDown, FileText, Loader2, MapPin, ShieldCheck } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, startOfWeek, endOfWeek, parseISO, differenceInHours } from 'date-fns';
+import { format, startOfWeek, endOfWeek, parseISO } from 'date-fns';
+
+// Mapeamento de chaves técnicas para nomes legíveis no relatório
+const SAFETY_LABELS: Record<keyof SafetyChecklist, string> = {
+  knowJobSafety: "Job Safety",
+  weatherCheck: "Weather",
+  safePassInDate: "Safe Pass",
+  hazardAwareness: "Hazards Aware",
+  floorConditions: "Floor Checked",
+  manualHandlingCert: "Manual Handling",
+  liftingHelp: "Lifting Plan",
+  anchorPoints: "Anchor Points",
+  ladderFooting: "Ladder Footing",
+  safetyCones: "Cones/Signs",
+  communication: "Comm. Done",
+  laddersCheck: "Ladders Checked",
+  sharpEdges: "No Sharp Edges",
+  scraperCovers: "Scraper Covers",
+  hotSurfaces: "No Hot Surfaces",
+  chemicalCourse: "Chem Course",
+  chemicalAwareness: "Chem Safety",
+  tidyEquipment: "Tidy Equip.",
+  laddersStored: "Ladders Stored",
+  highVis: "High Vis",
+  helmet: "Helmet",
+  goggles: "Goggles",
+  gloves: "Gloves",
+  mask: "Mask",
+  earMuffs: "Ear Muffs",
+  faceGuard: "Face Guard",
+  harness: "Harness",
+  boots: "Boots"
+};
 
 export const Reports: React.FC = () => {
   const { user } = useAuth();
@@ -87,19 +119,29 @@ export const Reports: React.FC = () => {
     return `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`;
   };
 
+  const getSafetySummary = (checklist?: SafetyChecklist) => {
+    if (!checklist) return 'No data';
+    const checked = Object.entries(checklist)
+      .filter(([_, value]) => value === true)
+      .map(([key]) => SAFETY_LABELS[key as keyof SafetyChecklist] || key);
+    
+    return checked.length > 0 ? checked.join(', ') : 'None selected';
+  };
+
   const exportPDF = () => {
-    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for more columns
+    const doc = new jsPDF('l', 'mm', 'a4'); 
     const reportUser = users.find(u => u.id === selectedUserFilter) || user;
     
     // Header
-    doc.setFontSize(20);
-    doc.setTextColor(2, 132, 199); // Brand 600
-    doc.text('DOWNEY CLEANING SERVICES', 14, 20);
+    doc.setFontSize(18);
+    doc.setTextColor(2, 132, 199); 
+    doc.text('DOWNEY CLEANING SERVICES', 14, 15);
     
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Individual Service Report: ${reportUser?.name || 'N/A'}`, 14, 28);
-    doc.text(`Generated on: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 34);
+    doc.text(`Staff Member: ${reportUser?.name || 'N/A'}`, 14, 22);
+    doc.text(`Report Period: ${format(new Date(), 'MMMM yyyy')}`, 14, 27);
+    doc.text(`Generated on: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 32);
     
     const tableData = filteredRecords
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
@@ -111,18 +153,22 @@ export const Reports: React.FC = () => {
             format(parseISO(rec.date), 'dd/MM/yyyy'),
             rec.locationName,
             `${start} - ${end}`,
+            getSafetySummary(rec.safetyChecklist),
             formatGPS(rec.startLocation),
             formatGPS(rec.endLocation),
-            rec.endTime ? 'Completed' : 'In Progress'
+            rec.endTime ? 'Done' : 'In Work'
         ];
     });
 
     autoTable(doc, {
-      head: [['Date', 'Site Name', 'Shift Time', 'Check-In (GPS)', 'Check-Out (GPS)', 'Status']],
+      head: [['Date', 'Site', 'Shift', 'Safety Items Checked', 'GPS In', 'GPS Out', 'Status']],
       body: tableData,
-      startY: 40,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [12, 74, 110] }, // Brand 900
+      startY: 38,
+      styles: { fontSize: 7, cellPadding: 2 },
+      columnStyles: {
+        3: { cellWidth: 80 }, 
+      },
+      headStyles: { fillColor: [12, 74, 110] }, 
     });
 
     const fileName = `Downey_Report_${reportUser?.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
@@ -137,9 +183,7 @@ export const Reports: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Service Reports</h2>
           <p className="text-gray-500">
-            {user?.role === UserRole.ADMIN && selectedUserFilter === 'all' 
-              ? 'Viewing all records' 
-              : `Viewing records for ${users.find(u => u.id === selectedUserFilter)?.name || 'you'}`}
+            Individual service history for <strong>{users.find(u => u.id === selectedUserFilter)?.name || 'you'}</strong>
           </p>
         </div>
         
@@ -155,7 +199,7 @@ export const Reports: React.FC = () => {
                 </select>
             )}
             <Button variant="primary" onClick={exportPDF} size="sm" className="shadow-sm">
-                <FileDown size={18} className="mr-2" /> Download Individual PDF
+                <FileDown size={18} className="mr-2" /> Export PDF
             </Button>
         </div>
       </div>
@@ -192,7 +236,8 @@ export const Reports: React.FC = () => {
                     <tr>
                         <th className="p-4">Date</th>
                         <th className="p-4">Location</th>
-                        <th className="p-4">Shift Time</th>
+                        <th className="p-4">Shift</th>
+                        <th className="p-4">Safety</th>
                         <th className="p-4">GPS Entry/Exit</th>
                         <th className="p-4">Status</th>
                     </tr>
@@ -209,13 +254,21 @@ export const Reports: React.FC = () => {
                                 <div className="font-bold text-gray-900">{record.locationName}</div>
                             </td>
                             <td className="p-4">
-                                <div className="flex items-center gap-1 text-gray-500">
-                                    <span className="bg-gray-100 px-2 py-0.5 rounded text-[11px] font-bold">
+                                <div className="flex items-center gap-1 text-gray-500 whitespace-nowrap">
+                                    <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold">
                                         {format(parseISO(record.startTime), 'HH:mm')}
                                     </span>
                                     <span>-</span>
-                                    <span className={`${record.endTime ? 'bg-gray-100' : 'bg-brand-100 text-brand-700'} px-2 py-0.5 rounded text-[11px] font-bold`}>
+                                    <span className={`${record.endTime ? 'bg-gray-100' : 'bg-brand-100 text-brand-700'} px-2 py-0.5 rounded text-[10px] font-bold`}>
                                         {record.endTime ? format(parseISO(record.endTime), 'HH:mm') : '...'}
+                                    </span>
+                                </div>
+                            </td>
+                            <td className="p-4 max-w-[200px]">
+                                <div className="flex items-center gap-1 text-brand-600">
+                                    <ShieldCheck size={14} />
+                                    <span className="text-[10px] truncate" title={getSafetySummary(record.safetyChecklist)}>
+                                        {Object.values(record.safetyChecklist || {}).filter(v => v === true).length} items
                                     </span>
                                 </div>
                             </td>
@@ -242,7 +295,7 @@ export const Reports: React.FC = () => {
                     ))}
                     {filteredRecords.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-12 text-center text-gray-400">
+                        <td colSpan={6} className="p-12 text-center text-gray-400">
                             <FileText size={48} className="mx-auto mb-2 opacity-10" />
                             <p className="italic">No records found for the selected period.</p>
                         </td>
