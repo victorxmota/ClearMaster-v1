@@ -22,22 +22,27 @@ export const Reports: React.FC = () => {
         if (!user) return;
         setIsLoading(true);
         
-        let allRecords: TimeRecord[] = [];
-        
-        if (user.role === UserRole.ADMIN) {
-            const [fetchedRecords, fetchedUsers] = await Promise.all([
-                Database.getAllRecords(),
-                Database.getAllUsers()
-            ]);
-            allRecords = fetchedRecords;
-            setUsers(fetchedUsers.filter(u => u.role === UserRole.EMPLOYEE));
-        } else {
-            allRecords = await Database.getRecordsByUser(user.id);
-        }
+        try {
+            let allRecords: TimeRecord[] = [];
+            
+            if (user.role === UserRole.ADMIN) {
+                const [fetchedRecords, fetchedUsers] = await Promise.all([
+                    Database.getAllRecords(),
+                    Database.getAllUsers()
+                ]);
+                allRecords = fetchedRecords;
+                setUsers(fetchedUsers.filter((u: User) => u.role === UserRole.EMPLOYEE));
+            } else {
+                allRecords = await Database.getRecordsByUser(user.id);
+            }
 
-        setRecords(allRecords);
-        setFilteredRecords(allRecords);
-        setIsLoading(false);
+            setRecords(allRecords);
+            setFilteredRecords(allRecords);
+        } catch (error) {
+            console.error("Error loading report data:", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
     loadData();
   }, [user]);
@@ -47,7 +52,7 @@ export const Reports: React.FC = () => {
       if (selectedUserFilter === 'all') {
         setFilteredRecords(records);
       } else {
-        setFilteredRecords(records.filter(r => r.userId === selectedUserFilter));
+        setFilteredRecords(records.filter((r: TimeRecord) => r.userId === selectedUserFilter));
       }
     } else {
         setFilteredRecords(records);
@@ -59,7 +64,7 @@ export const Reports: React.FC = () => {
     const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
     const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
 
-    filteredRecords.forEach(record => {
+    filteredRecords.forEach((record: TimeRecord) => {
       if (!record.endTime) return;
       const date = parseISO(record.date);
       if (date >= weekStart && date <= weekEnd) {
@@ -75,11 +80,11 @@ export const Reports: React.FC = () => {
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text('Service Report', 14, 22);
+    doc.text('Service Report - Downey Cleaning', 14, 22);
     doc.setFontSize(11);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
     
-    const tableData = filteredRecords.map(rec => {
+    const tableData = filteredRecords.map((rec: TimeRecord) => {
         const u = users.find((u: User) => u.id === rec.userId);
         const start = new Date(rec.startTime).toLocaleTimeString();
         const end = rec.endTime ? new Date(rec.endTime).toLocaleTimeString() : 'In progress';
@@ -97,7 +102,7 @@ export const Reports: React.FC = () => {
       body: tableData,
       startY: 40,
     });
-    doc.save('report.pdf');
+    doc.save(`downey_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
   if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin text-brand-600"/></div>;
@@ -107,28 +112,28 @@ export const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
-          <p className="text-gray-500">Weekly tracking</p>
+          <p className="text-gray-500">Service monitoring</p>
         </div>
         
         <div className="flex flex-wrap gap-2">
             {user?.role === UserRole.ADMIN && (
                 <select 
-                    className="border rounded-md px-3 py-2 bg-white"
+                    className="border rounded-md px-3 py-2 bg-white text-sm"
                     value={selectedUserFilter}
                     onChange={(e) => setSelectedUserFilter(e.target.value)}
                 >
                     <option value="all">All Employees</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    {users.map((u: User) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
             )}
-            <Button variant="secondary" onClick={exportPDF}>
+            <Button variant="secondary" onClick={exportPDF} size="sm">
                 <FileDown size={18} className="mr-2" /> Export PDF
             </Button>
         </div>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold mb-6">Weekly Hours</h3>
+        <h3 className="text-lg font-semibold mb-6">Current Week Performance</h3>
         <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={getChartData()}>
@@ -145,7 +150,7 @@ export const Reports: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center gap-2">
             <FileText className="text-brand-600" />
-            <h3 className="font-semibold text-lg">Detailed Records</h3>
+            <h3 className="font-semibold text-lg">History Logs</h3>
         </div>
         <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -154,31 +159,31 @@ export const Reports: React.FC = () => {
                         <th className="p-4">Date</th>
                         {user?.role === UserRole.ADMIN && <th className="p-4">User</th>}
                         <th className="p-4">Location</th>
-                        <th className="p-4">Time</th>
+                        <th className="p-4">Shift Time</th>
                         <th className="p-4">Status</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                    {filteredRecords.sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()).map((record) => (
+                    {filteredRecords.sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()).map((record: TimeRecord) => (
                         <tr key={record.id} className="hover:bg-gray-50">
-                            <td className="p-4">{new Date(record.date).toLocaleDateString()}</td>
+                            <td className="p-4 font-mono">{new Date(record.date).toLocaleDateString()}</td>
                             {user?.role === UserRole.ADMIN && (
                                 <td className="p-4 font-medium">{users.find((u: User) => u.id === record.userId)?.name || '...'}</td>
                             )}
                             <td className="p-4">{record.locationName}</td>
-                            <td className="p-4">
+                            <td className="p-4 text-xs">
                                 {new Date(record.startTime).toLocaleTimeString()} - {record.endTime ? new Date(record.endTime).toLocaleTimeString() : '...'}
                             </td>
                             <td className="p-4">
                                 {record.endTime ? (
-                                    <span className="text-green-600 font-medium">Completed</span>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>
                                 ) : (
-                                    <span className="text-blue-600 font-medium">Active</span>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Active</span>
                                 )}
                             </td>
                         </tr>
                     ))}
-                    {filteredRecords.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">No records.</td></tr>}
+                    {filteredRecords.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-400 italic">No records found for current selection.</td></tr>}
                 </tbody>
             </table>
         </div>

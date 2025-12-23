@@ -1,27 +1,11 @@
-
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase';
-import { Database } from '../services/database';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import { Loader2 } from 'lucide-react';
-import { useAuth } from '../App';
+import { signInWithGoogle } from '../services/firebase';
 
 export const Login: React.FC = () => {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-
-  if (isAuthenticated) {
-    navigate('/');
-  }
-
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
 
   const handleGoogleLogin = async () => {
     try {
@@ -30,27 +14,8 @@ export const Login: React.FC = () => {
       await signInWithGoogle();
       navigate('/');
     } catch (err: any) {
-      setError('Auth failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      if (mode === 'login') {
-        await loginWithEmail(email, password);
-      } else {
-        const firebaseUser = await registerWithEmail(email, password, name);
-        // Sync the user with the database after registration
-        await Database.syncUser(firebaseUser, name);
-      }
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Error occurred.');
+      console.error(err);
+      setError('Failed to login with Google. Please check your Firebase configuration.');
     } finally {
       setLoading(false);
     }
@@ -58,73 +23,40 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-brand-100">
-        <div className="bg-brand-500 p-10 text-white text-center">
-          <h1 className="text-3xl font-black tracking-tighter uppercase">Downey Staff</h1>
-          <p className="text-brand-100 mt-2 text-[10px] font-black tracking-widest uppercase">Portal</p>
+      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-brand-600">Downey Cleaning</h1>
+          <p className="text-gray-500 mt-2">Professional Service Management</p>
         </div>
 
-        <div className="p-10">
-          <div className="flex mb-8 bg-gray-100 p-1 rounded-xl">
-            {(['login', 'register'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => { setMode(m); setError(''); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-black uppercase transition-all ${mode === m ? 'bg-white shadow-sm text-brand-500' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'register' && (
-              <Input
-                label="Full Name"
-                placeholder="John Smith"
-                value={name}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                required
-              />
-            )}
-            <Input
-              label="Staff Email"
-              type="email"
-              placeholder="name@downey.ie"
-              value={email}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              required
-            />
-            <Input
-              label="Password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              required
-            />
-
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-[10px] font-black text-center border border-red-100 animate-shake">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" fullWidth disabled={loading} className="h-14 text-sm font-black uppercase tracking-widest shadow-xl">
-              {loading ? <Loader2 className="animate-spin" /> : 'Confirm'}
-            </Button>
-          </form>
-
+        <div className="space-y-6">
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full mt-6 flex items-center justify-center bg-white border-2 border-gray-100 rounded-xl p-4 text-gray-700 hover:bg-gray-50 transition-all font-black text-xs uppercase shadow-sm"
+            className="w-full flex items-center justify-center bg-white border border-gray-300 rounded-lg p-3 text-gray-700 hover:bg-gray-50 hover:shadow-sm transition-all shadow-sm font-medium disabled:opacity-50"
           >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-3" />
-            Continue with Google
+            {loading ? (
+              <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent animate-spin rounded-full mr-3"></div>
+            ) : (
+              <img 
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                alt="Google" 
+                className="w-6 h-6 mr-3"
+              />
+            )}
+            {loading ? 'Connecting...' : 'Sign in with Google'}
           </button>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-100">
+              {error}
+            </div>
+          )}
+          
+          <div className="text-center text-xs text-gray-400 mt-6 pt-6 border-t">
+            <p>Access restricted to Downey Cleaning authorized personnel.</p>
+          </div>
         </div>
       </div>
     </div>
