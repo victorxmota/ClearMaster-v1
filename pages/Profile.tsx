@@ -23,31 +23,35 @@ export const Profile: React.FC = () => {
 
   if (!user) return null;
 
+  // Lógica de Account ID: @PrimeiroNomeUltimoNome
   const getAccountId = (fullName: string) => {
-    const names = fullName.trim().split(/\s+/);
-    if (names.length === 0) return 'User';
-    if (names.length === 1) return names[0];
-    const first = names[0];
-    const last = names[names.length - 1];
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 0) return 'User';
+    if (parts.length === 1) return parts[0];
+    const first = parts[0];
+    const last = parts[parts.length - 1];
     return `${first}${last}`.replace(/[^a-zA-Z0-9]/g, '');
   };
 
   const handleSave = async () => {
     if (!editEmail || !editPhone) {
-      alert("Email and Phone are required.");
+      alert("Email and phone fields cannot be empty.");
       return;
     }
     
     setIsSaving(true);
     try {
-      await Database.updateUser(user.id, { email: editEmail, phone: editPhone });
+      await Database.updateUser(user.id, { 
+        email: editEmail, 
+        phone: editPhone 
+      });
       alert('Profile updated successfully!');
       setIsEditing(false);
-      // Reload para garantir que o contexto pegue as novas informações do Firestore
-      window.location.reload(); 
-    } catch (error: any) {
-      console.error("Error updating profile", error);
-      alert(`Failed to update profile: ${error.message}`);
+      // Recarrega para atualizar o contexto de autenticação com os dados novos
+      window.location.reload();
+    } catch (err: any) {
+      console.error("Update profile error:", err);
+      alert(`Error updating profile: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -67,7 +71,7 @@ export const Profile: React.FC = () => {
           <div className="absolute top-4 right-4">
             {!isEditing ? (
               <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit2 size={16} className="mr-2" /> Edit Info
+                <Edit2 size={16} className="mr-2" /> Edit Details
               </Button>
             ) : (
               <div className="flex gap-2">
@@ -84,37 +88,48 @@ export const Profile: React.FC = () => {
         </div>
         
         <div className="pt-20 pb-8 px-8">
-          <div className="mb-6">
+          <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
             <p className="text-brand-600 font-medium">
-              {user.role === UserRole.ADMIN ? 'Administrator' : 'Cleaning Professional'}
+              {user.role === UserRole.ADMIN ? 'Executive Administrator' : 'Cleaning Specialist'}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className={`p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100' : 'bg-gray-50 border-transparent'}`}>
+            <div className={`p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-400 ring-2 ring-brand-50' : 'bg-gray-50 border-transparent'}`}>
               <div className="flex items-center space-x-3">
                 <Mail className="text-gray-400" size={18} />
                 <div className="flex-1">
-                  <p className="text-xs text-gray-500 uppercase font-bold">Official Email</p>
+                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Email Address</p>
                   {isEditing ? (
-                    <input type="email" className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} autoFocus />
+                    <input 
+                      type="email" 
+                      className="w-full bg-transparent border-none p-0 text-sm font-bold focus:ring-0 outline-none text-brand-700" 
+                      value={editEmail} 
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      autoFocus
+                    />
                   ) : (
-                    <p className="font-medium text-gray-800">{user.email}</p>
+                    <p className="font-semibold text-gray-800">{user.email}</p>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className={`p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100' : 'bg-gray-50 border-transparent'}`}>
+            <div className={`p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-400 ring-2 ring-brand-50' : 'bg-gray-50 border-transparent'}`}>
               <div className="flex items-center space-x-3">
                 <Phone className="text-gray-400" size={18} />
                 <div className="flex-1">
-                  <p className="text-xs text-gray-500 uppercase font-bold">Contact Number</p>
+                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Contact Phone</p>
                   {isEditing ? (
-                    <input type="tel" className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} />
+                    <input 
+                      type="tel" 
+                      className="w-full bg-transparent border-none p-0 text-sm font-bold focus:ring-0 outline-none text-brand-700" 
+                      value={editPhone} 
+                      onChange={(e) => setEditPhone(e.target.value)}
+                    />
                   ) : (
-                    <p className="font-medium text-gray-800">{user.phone}</p>
+                    <p className="font-semibold text-gray-800">{user.phone}</p>
                   )}
                 </div>
               </div>
@@ -123,22 +138,23 @@ export const Profile: React.FC = () => {
             <div className="p-4 bg-gray-50 rounded-lg border border-transparent flex items-center space-x-3">
               <CreditCard className="text-gray-400" size={18} />
               <div>
-                <p className="text-xs text-gray-500 uppercase font-bold">PPS Number</p>
-                <p className="font-medium text-gray-800">{user.pps || 'N/A'}</p>
+                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">PPS Number</p>
+                <p className="font-semibold text-gray-800">{user.pps || 'Not provided'}</p>
               </div>
             </div>
 
             <div className="p-4 bg-brand-50 rounded-lg border border-brand-100 flex items-center space-x-3">
               <Shield className="text-brand-600" size={18} />
               <div>
-                <p className="text-xs text-brand-600 uppercase font-bold">Account ID</p>
-                <p className="font-bold text-brand-900 font-mono text-sm">@{getAccountId(user.name)}</p>
+                <p className="text-[10px] text-brand-600 uppercase font-bold tracking-widest mb-1">Digital Account ID</p>
+                <p className="font-bold text-brand-900 font-mono">@{getAccountId(user.name)}</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-10 pt-6 border-t border-gray-100">
-            <Button variant="danger" onClick={logout} className="w-full md:w-auto">Logout System</Button>
+          <div className="mt-12 pt-6 border-t border-gray-100 flex justify-between items-center">
+            <span className="text-xs text-gray-400 font-mono uppercase tracking-tighter">UID: {user.id.slice(0, 8)}...</span>
+            <Button variant="danger" size="sm" onClick={logout}>Terminate Session</Button>
           </div>
         </div>
       </div>
