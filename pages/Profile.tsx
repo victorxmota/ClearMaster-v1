@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import { UserRole } from '../types';
-import { User, Phone, Mail, CreditCard, Shield, Edit2, Save, X, Loader2 } from 'lucide-react';
+import { User as UserIcon, Phone, Mail, CreditCard, Shield, Edit2, Save, X, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Database } from '../services/database';
 
@@ -11,7 +11,6 @@ export const Profile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Local form state
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
 
@@ -24,14 +23,15 @@ export const Profile: React.FC = () => {
 
   if (!user) return null;
 
-  // Lógica para gerar o Account ID (Primeiro + Último nome)
+  // Lógica: Primeiro + Último nome. Ex: "Fulano Siclano Junior" -> "FulanoJunior"
   const getAccountId = (fullName: string) => {
     const names = fullName.trim().split(/\s+/);
     if (names.length === 0) return 'User';
     if (names.length === 1) return names[0];
     const first = names[0];
     const last = names[names.length - 1];
-    return `${first}${last}`;
+    // Remove caracteres especiais e espaços se houver
+    return `${first}${last}`.replace(/[^a-zA-Z0-9]/g, '');
   };
 
   const handleSave = async () => {
@@ -48,7 +48,7 @@ export const Profile: React.FC = () => {
       });
       alert('Profile updated successfully!');
       setIsEditing(false);
-      // Recarrega para refletir as mudanças que vêm do Firestore no App.tsx
+      // Recarrega para refletir mudanças do Firestore
       window.location.reload(); 
     } catch (error: any) {
       console.error("Error updating profile", error);
@@ -65,14 +65,14 @@ export const Profile: React.FC = () => {
           <div className="absolute -bottom-16 left-8">
             <div className="w-32 h-32 bg-white rounded-full p-2 shadow-md">
               <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
-                <User size={64} />
+                <UserIcon size={64} />
               </div>
             </div>
           </div>
           <div className="absolute top-4 right-4">
             {!isEditing ? (
               <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit2 size={16} className="mr-2" /> Edit Info
+                <Edit2 size={16} className="mr-2" /> Edit Profile
               </Button>
             ) : (
               <div className="flex gap-2">
@@ -99,14 +99,14 @@ export const Profile: React.FC = () => {
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100' : 'bg-gray-50 border-transparent'}`}>
+            <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100 shadow-sm' : 'bg-gray-50 border-transparent'}`}>
               <Mail className="text-gray-400 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Official Email</p>
                 {isEditing ? (
                   <input 
                     type="email"
-                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-medium focus:ring-0 outline-none text-gray-800"
+                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700"
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
                     autoFocus
@@ -117,14 +117,14 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
-            <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100' : 'bg-gray-50 border-transparent'}`}>
+            <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${isEditing ? 'bg-white border-brand-300 ring-2 ring-brand-100 shadow-sm' : 'bg-gray-50 border-transparent'}`}>
               <Phone className="text-gray-400 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Contact Number</p>
                 {isEditing ? (
                   <input 
                     type="tel"
-                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-medium focus:ring-0 outline-none text-gray-800"
+                    className="w-full bg-transparent border-none p-0 mt-1 text-sm font-bold focus:ring-0 outline-none text-brand-700"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                   />
@@ -138,7 +138,7 @@ export const Profile: React.FC = () => {
               <CreditCard className="text-gray-400 flex-shrink-0" />
               <div>
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">PPS Number</p>
-                <p className="font-medium text-gray-800">{user.pps || 'Not provided'}</p>
+                <p className="font-medium text-gray-800">{user.pps || 'N/A'}</p>
               </div>
             </div>
 

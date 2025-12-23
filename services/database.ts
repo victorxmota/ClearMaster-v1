@@ -40,6 +40,7 @@ const sanitizeData = (data: any) => {
 
 export const Database = {
   syncUser: async (firebaseUser: FirebaseUser, extraData?: Partial<User>): Promise<User> => {
+    if (!db) throw new Error("Database not initialized");
     const userRef = doc(db, USERS_COL, firebaseUser.uid);
     const userSnap = await getDoc(userRef);
 
