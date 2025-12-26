@@ -145,7 +145,7 @@ export const Reports: React.FC = () => {
               {filteredRecords.length === 0 && (
                 <tr>
                   <td colSpan={4} className="p-10 text-center text-gray-400 font-medium">No records found.</td>
-                </tr>a
+                </tr>
               )}
             </tbody>
           </table>
