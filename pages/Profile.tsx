@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
@@ -84,7 +83,7 @@ export const Profile: React.FC = () => {
                 <Button variant="danger" size="sm" onClick={() => setIsEditing(false)} disabled={isSaving}>
                   <X size={16} />
                 </Button>
-                <Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving} className="bg-green-600 hover:bg-green-700">
+                <Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving} className="bg-green-600 hover:bg-green-700 border-none">
                   {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 </Button>
               </div>
