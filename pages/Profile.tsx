@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '../App';
 import { UserRole } from '../types';
@@ -11,11 +12,11 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-brand-600 h-32 relative">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <div className="bg-brand-500 h-32 relative">
           <div className="absolute -bottom-16 left-8">
-            <div className="w-32 h-32 bg-white rounded-full p-2 shadow-md">
-              <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-gray-400">
+            <div className="w-32 h-32 bg-white rounded-full p-2 shadow-lg">
+              <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
                 <User size={64} />
               </div>
             </div>
@@ -25,50 +26,50 @@ export const Profile: React.FC = () => {
         <div className="pt-20 pb-8 px-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
-              <p className="text-brand-600 font-medium mt-1">
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight">{user.name}</h1>
+              <p className="text-brand-500 font-bold mt-1 uppercase text-sm tracking-wider">
                 {user.role === UserRole.ADMIN ? 'System Administrator' : 'Cleaning Professional'}
               </p>
             </div>
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-              <Mail className="text-gray-400" />
+            <div className="flex items-center space-x-4 p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-brand-200 transition-colors">
+              <div className="bg-white p-2 rounded-lg shadow-sm text-brand-500"><Mail size={20} /></div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Email</p>
-                <p className="font-medium">{user.email}</p>
+                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Official Email</p>
+                <p className="font-bold text-gray-800">{user.email}</p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-              <Phone className="text-gray-400" />
+            <div className="flex items-center space-x-4 p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-brand-200 transition-colors">
+              <div className="bg-white p-2 rounded-lg shadow-sm text-brand-500"><Phone size={20} /></div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Phone</p>
-                <p className="font-medium">{user.phone}</p>
+                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Contact Number</p>
+                <p className="font-bold text-gray-800">{user.phone || 'Not set'}</p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-              <CreditCard className="text-gray-400" />
+            <div className="flex items-center space-x-4 p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-brand-200 transition-colors">
+              <div className="bg-white p-2 rounded-lg shadow-sm text-brand-500"><CreditCard size={20} /></div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">PPS (Social Number)</p>
-                <p className="font-medium">{user.pps}</p>
+                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">PPS Number</p>
+                <p className="font-bold text-gray-800">{user.pps || 'Information pending'}</p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-              <Shield className="text-gray-400" />
+            <div className="flex items-center space-x-4 p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-brand-200 transition-colors">
+              <div className="bg-white p-2 rounded-lg shadow-sm text-brand-500"><Shield size={20} /></div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">User ID</p>
-                <p className="font-medium text-sm font-mono">{user.id}</p>
+                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Account ID</p>
+                <p className="font-mono text-xs font-bold text-gray-400 truncate w-40">{user.id}</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 border-t pt-6">
-            <Button variant="danger" onClick={logout} className="w-full md:w-auto">
-              Logout
+          <div className="mt-8 border-t border-gray-100 pt-8 flex justify-center">
+            <Button variant="danger" onClick={logout} className="w-full max-w-xs h-12 text-lg font-bold shadow-md">
+              Secure Logout
             </Button>
           </div>
         </div>
