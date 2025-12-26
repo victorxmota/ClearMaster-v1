@@ -10,17 +10,14 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "*": ["*", "*.tsx", "*.ts"]
-    },
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": "."
   },
-  "include": ["."],
+  "include": ["index.tsx", "App.tsx", "types.ts", "services", "components", "pages", "context"],
   "exclude": ["node_modules", "dist"]
 }
