@@ -2,23 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Database } from '../services/database';
-import { TimeRecord, UserRole, User, SafetyChecklist } from '../types';
+import { TimeRecord, UserRole, User } from '../types';
 import { Button } from '../components/ui/Button';
-import { FileDown, Loader2, ShieldCheck, ClipboardList } from 'lucide-react';
+import { FileDown, Loader2, ClipboardList } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
-
-const SAFETY_LABELS: Record<keyof SafetyChecklist, string> = {
-  knowJobSafety: "Job Safety Plan", weatherCheck: "Weather Check", safePassInDate: "Safe Pass",
-  hazardAwareness: "Hazard Awareness", floorConditions: "Floor Check", manualHandlingCert: "Manual Handling",
-  liftingHelp: "Lifting Help", anchorPoints: "Anchor Points", ladderFooting: "Ladder Footing",
-  safetyCones: "Safety Cones", communication: "Comm. Protocol", laddersCheck: "Ladder Check",
-  sharpEdges: "Sharp Edges", scraperCovers: "Scraper Covers", hotSurfaces: "Hot Surfaces",
-  chemicalCourse: "Chem Course", chemicalAwareness: "Chem Awareness", tidyEquipment: "Tidy Equip",
-  laddersStored: "Ladder Storage", highVis: "High Vis", helmet: "Helmet", goggles: "Goggles",
-  gloves: "Gloves", mask: "Mask", earMuffs: "Ear Muffs", faceGuard: "Face Guard", harness: "Harness", boots: "Boots"
-};
 
 export const Reports: React.FC = () => {
   const { user } = useAuth();
@@ -65,52 +54,37 @@ export const Reports: React.FC = () => {
     }
   }, [selectedUserFilter, records]);
 
-  const getSafetyItemsCount = (checklist?: SafetyChecklist) => {
-    if (!checklist) return 0;
-    return Object.values(checklist).filter(v => v === true).length;
-  };
-
-  const getSafetySummaryText = (checklist?: SafetyChecklist) => {
-    if (!checklist) return 'N/A';
-    const active = Object.entries(checklist)
-      .filter(([_, v]) => v === true)
-      .map(([k]) => SAFETY_LABELS[k as keyof SafetyChecklist] || k);
-    return active.length > 0 ? active.join(', ') : 'None';
-  };
-
   const exportPDF = () => {
-    const doc = new jsPDF('l', 'mm', 'a4');
+    const doc = new jsPDF('p', 'mm', 'a4');
     const activeUser = users.find(u => u.id === selectedUserFilter) || user;
     
     doc.setFontSize(18);
     doc.setTextColor(2, 132, 199);
-    doc.text('DOWNEY CLEANING SERVICES - OPERATIONAL REPORT', 14, 15);
+    doc.text('DOWNEY CLEANING SERVICES - SERVICE REPORT', 14, 15);
     
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Staff Member: ${selectedUserFilter === 'all' ? 'Entire Team' : activeUser?.name}`, 14, 22);
-    doc.text(`Date of Report: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 27);
+    doc.text(`Generated on: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 27);
 
     const tableData = filteredRecords
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
       .map(r => [
         format(parseISO(r.date), 'dd/MM/yyyy'),
         r.locationName,
-        `${format(parseISO(r.startTime), 'HH:mm')} - ${r.endTime ? format(parseISO(r.endTime), 'HH:mm') : 'Active'}`,
-        getSafetySummaryText(r.safetyChecklist),
-        r.endTime ? 'Verified' : 'In Progress'
+        format(parseISO(r.startTime), 'HH:mm'),
+        r.endTime ? format(parseISO(r.endTime), 'HH:mm') : 'Active',
+        r.endTime ? 'Completed' : 'Ongoing'
       ]);
 
     autoTable(doc, {
-      head: [['Date', 'Site Location', 'Shift Time', 'Safety Items Confirmed', 'Status']],
+      head: [['Date', 'Site Location', 'Check-In', 'Check-Out', 'Status']],
       body: tableData,
       startY: 35,
-      styles: { fontSize: 8, cellPadding: 3 },
-      columnStyles: { 3: { cellWidth: 100 } },
-      headStyles: { fillColor: [12, 74, 110], textColor: [255, 255, 255] }
+      headStyles: { fillColor: [12, 74, 110] }
     });
 
-    doc.save(`Downey_Cleaning_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    doc.save(`Service_Report_${format(new Date(), 'yyyyMMdd')}.pdf`);
   };
 
   if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-brand-600" size={48} /></div>;
@@ -120,9 +94,9 @@ export const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <ClipboardList className="text-brand-600" /> Operational Logs
+            <ClipboardList className="text-brand-600" /> Operational Reports
           </h2>
-          <p className="text-gray-500">View shifts and mandatory safety compliance</p>
+          <p className="text-gray-500">Service logs and attendance tracking</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {user?.role === UserRole.ADMIN && (
@@ -136,7 +110,7 @@ export const Reports: React.FC = () => {
             </select>
           )}
           <Button variant="primary" onClick={exportPDF} size="sm">
-            <FileDown size={18} className="mr-2" /> Export to PDF
+            <FileDown size={18} className="mr-2" /> PDF Export
           </Button>
         </div>
       </div>
@@ -148,9 +122,8 @@ export const Reports: React.FC = () => {
               <tr>
                 <th className="p-4">Date</th>
                 <th className="p-4">Site Location</th>
-                <th className="p-4">Shift Duration</th>
-                <th className="p-4">Safety Items</th>
-                <th className="p-4">Compliance</th>
+                <th className="p-4">In / Out</th>
+                <th className="p-4 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -163,24 +136,16 @@ export const Reports: React.FC = () => {
                   <td className="p-4 text-gray-500">
                     {format(parseISO(record.startTime), 'HH:mm')} - {record.endTime ? format(parseISO(record.endTime), 'HH:mm') : '...'}
                   </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2 text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100 w-fit">
-                      <ShieldCheck size={14} />
-                      <span className="text-[10px] font-bold" title={getSafetySummaryText(record.safetyChecklist)}>
-                        {getSafetyItemsCount(record.safetyChecklist)} Items Checked
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-4">
+                  <td className="p-4 text-center">
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${record.endTime ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200 animate-pulse'}`}>
-                      {record.endTime ? 'Verified' : 'In Service'}
+                      {record.endTime ? 'Completed' : 'In Service'}
                     </span>
                   </td>
                 </tr>
               ))}
               {filteredRecords.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-10 text-center text-gray-400">No shift records found.</td>
+                  <td colSpan={4} className="p-10 text-center text-gray-400 font-medium">No records found.</td>
                 </tr>
               )}
             </tbody>

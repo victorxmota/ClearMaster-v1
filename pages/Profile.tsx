@@ -30,12 +30,13 @@ export const Profile: React.FC = () => {
     if (parts.length === 1) return `@${parts[0]}`;
     const first = parts[0];
     const last = parts[parts.length - 1];
+    // Remove caracteres especiais para manter o ID limpo
     return `@${first}${last}`.replace(/[^a-zA-Z0-9@]/g, '');
   };
 
   const handleSave = async () => {
     if (!editEmail || !editPhone) {
-      alert("Email and phone are required for professional contact.");
+      alert("Email and phone are required.");
       return;
     }
     
@@ -46,11 +47,11 @@ export const Profile: React.FC = () => {
         phone: editPhone 
       });
       setIsEditing(false);
-      // Recarrega para sincronizar com o AuthContext global
+      // Forçamos um reload leve para garantir que o AuthContext e o banco estejam em sincronia
       window.location.reload();
     } catch (err: any) {
       console.error("Profile update error:", err);
-      alert("Could not update profile information.");
+      alert("Failed to update profile. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -59,7 +60,7 @@ export const Profile: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-        {/* Banner */}
+        {/* Banner de Fundo */}
         <div className="bg-brand-900 h-32 relative">
           <div className="absolute -bottom-16 left-8">
             <div className="w-32 h-32 bg-white rounded-full p-2 shadow-lg">
@@ -74,7 +75,7 @@ export const Profile: React.FC = () => {
                 variant="secondary" 
                 size="sm" 
                 onClick={() => setIsEditing(true)}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm"
               >
                 <Edit2 size={16} className="mr-2" /> Edit Profile
               </Button>
@@ -91,7 +92,7 @@ export const Profile: React.FC = () => {
           </div>
         </div>
         
-        {/* Content */}
+        {/* Conteúdo do Perfil */}
         <div className="pt-20 pb-10 px-10">
           <div className="mb-10">
             <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
@@ -103,6 +104,7 @@ export const Profile: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Campo E-mail */}
             <div className={`p-4 rounded-xl border transition-all ${isEditing ? 'bg-white border-brand-500 shadow-inner ring-4 ring-brand-50' : 'bg-gray-50 border-gray-100'}`}>
               <div className="flex items-center space-x-3 text-gray-400 mb-2">
                 <Mail size={16} />
@@ -121,6 +123,7 @@ export const Profile: React.FC = () => {
               )}
             </div>
 
+            {/* Campo Telefone */}
             <div className={`p-4 rounded-xl border transition-all ${isEditing ? 'bg-white border-brand-500 shadow-inner ring-4 ring-brand-50' : 'bg-gray-50 border-gray-100'}`}>
               <div className="flex items-center space-x-3 text-gray-400 mb-2">
                 <Phone size={16} />
@@ -138,14 +141,16 @@ export const Profile: React.FC = () => {
               )}
             </div>
 
+            {/* PPS (Não editável por segurança) */}
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
               <div className="flex items-center space-x-3 text-gray-400 mb-2">
                 <CreditCard size={16} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">PPS Registration</span>
               </div>
-              <p className="font-bold text-gray-800 text-sm">{user.pps || 'Verified System'}</p>
+              <p className="font-bold text-gray-800 text-sm">{user.pps || 'System Verified'}</p>
             </div>
 
+            {/* Account ID (Gerado automaticamente) */}
             <div className="p-4 bg-brand-50 rounded-xl border border-brand-100">
               <div className="flex items-center space-x-3 text-brand-600 mb-2">
                 <Shield size={16} />
@@ -156,7 +161,7 @@ export const Profile: React.FC = () => {
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <span className="text-[10px] text-gray-300 font-mono">UID: {user.id.toUpperCase()}</span>
+            <span className="text-[10px] text-gray-300 font-mono uppercase tracking-tighter">System UID: {user.id}</span>
             <Button variant="danger" size="sm" onClick={logout} className="px-10">
               Sign Out Securely
             </Button>
