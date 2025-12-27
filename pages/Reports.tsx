@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../App';
+import { useAuth } from '../AuthContext';
 import { Database } from '../services/database';
 import { TimeRecord, UserRole, User } from '../types';
 import { Button } from '../components/ui/Button';
@@ -14,10 +14,9 @@ import {
   TrendingUp,
   Map as MapIcon
 } from 'lucide-react';
-// Changed to named export for better compatibility with TypeScript and modern bundlers
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, parseISO, differenceInMinutes, startOfDay } from 'date-fns';
+import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { 
   BarChart, 
   Bar, 
@@ -78,7 +77,6 @@ export const Reports: React.FC = () => {
     }
   }, [selectedUserFilter, records, user]);
 
-  // Calculations for Charts and Stats
   const stats = useMemo(() => {
     const completed = filteredRecords.filter(r => r.endTime);
     const totalMinutes = completed.reduce((acc, rec) => {
@@ -95,11 +93,7 @@ export const Reports: React.FC = () => {
   }, [filteredRecords]);
 
   const chartData = useMemo(() => {
-    // FIX: Map here refers to the global JavaScript Map constructor.
-    // Renaming the Lucide icon import to MapIcon prevents the naming conflict.
     const dailyMap = new Map<string, number>();
-    
-    // Sort records to process chronologically
     const sorted = [...filteredRecords].sort((a, b) => 
       new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     );
@@ -115,7 +109,7 @@ export const Reports: React.FC = () => {
     return Array.from(dailyMap.entries()).map(([name, hours]) => ({
       name,
       hours: parseFloat(hours.toFixed(1))
-    })).slice(-10); // Last 10 days with activity
+    })).slice(-10);
   }, [filteredRecords]);
 
   const formatGPS = (loc?: {lat: number, lng: number}) => {
@@ -129,7 +123,6 @@ export const Reports: React.FC = () => {
   };
 
   const exportPDF = () => {
-    // FIX: Using the named export for jsPDF constructor.
     const doc = new jsPDF('l', 'mm', 'a4');
     const reportUser = users.find(u => u.id === selectedUserFilter) || user;
     const isFiltered = selectedUserFilter !== 'all';
@@ -215,7 +208,6 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="bg-brand-50 p-3 rounded-lg text-brand-600"><Clock size={24}/></div>
@@ -240,7 +232,6 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      {/* Graphical Chart */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-6">
           <BarChart3 className="text-brand-600" size={20} />
@@ -268,12 +259,7 @@ export const Reports: React.FC = () => {
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   labelStyle={{ fontWeight: 'bold', color: '#1e293b' }}
                 />
-                <Bar 
-                  dataKey="hours" 
-                  fill="#0284c7" 
-                  radius={[4, 4, 0, 0]}
-                  barSize={32}
-                >
+                <Bar dataKey="hours" fill="#0284c7" radius={[4, 4, 0, 0]} barSize={32}>
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fillOpacity={0.8 + (index / chartData.length) * 0.2} />
                   ))}
@@ -289,7 +275,6 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      {/* Activity Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
           <div className="flex items-center gap-2">
@@ -317,63 +302,40 @@ export const Reports: React.FC = () => {
                 .sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
                 .map((record) => (
                 <tr key={record.id} className="hover:bg-brand-50/30 transition-colors group">
-                  <td className="p-4">
-                    <div className="font-mono text-gray-600 text-xs">
-                      {format(parseISO(record.date), 'dd/MM/yyyy')}
-                    </div>
+                  <td className="p-4 text-xs font-mono text-gray-600">
+                    {format(parseISO(record.date), 'dd/MM/yyyy')}
                   </td>
-                  <td className="p-4">
-                    <div className="font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{record.locationName}</div>
+                  <td className="p-4 font-bold text-gray-900">
+                    {record.locationName}
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
-                      <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold text-gray-600 border border-gray-200">
+                      <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold text-gray-600">
                         {format(parseISO(record.startTime), 'HH:mm')}
                       </span>
                       <span className="text-gray-300">→</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${record.endTime ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-brand-50 text-brand-700 border-brand-200 animate-pulse'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${record.endTime ? 'bg-gray-100' : 'bg-brand-50 text-brand-700 animate-pulse'}`}>
                         {record.endTime ? format(parseISO(record.endTime), 'HH:mm') : 'ACTIVE'}
                       </span>
                     </div>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-1">
-                      <a 
-                        href={getMapsUrl(record.startLocation)} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-[10px] font-mono text-brand-600 hover:underline"
-                      >
-                        <MapPin size={10} className="text-green-500 fill-green-500/20"/> 
-                        {formatGPS(record.startLocation)}
-                        <ExternalLink size={8} className="opacity-0 group-hover:opacity-100"/>
+                      <a href={getMapsUrl(record.startLocation)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-brand-600 hover:underline">
+                        <MapPin size={10} className="text-green-500"/> {formatGPS(record.startLocation)}
                       </a>
-                      <a 
-                        href={getMapsUrl(record.endLocation)} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-[10px] font-mono text-brand-600 hover:underline"
-                      >
-                        <MapPin size={10} className="text-red-500 fill-red-500/20"/> 
-                        {formatGPS(record.endLocation)}
-                        {record.endLocation && <ExternalLink size={8} className="opacity-0 group-hover:opacity-100"/>}
+                      <a href={getMapsUrl(record.endLocation)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-brand-600 hover:underline">
+                        <MapPin size={10} className="text-red-500"/> {formatGPS(record.endLocation)}
                       </a>
                     </div>
                   </td>
                   <td className="p-4 text-center">
-                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border tracking-tighter ${record.endTime ? 'bg-green-50 text-green-700 border-green-200' : 'bg-brand-50 text-brand-700 border-brand-200'}`}>
+                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border ${record.endTime ? 'bg-green-50 text-green-700' : 'bg-brand-50 text-brand-700'}`}>
                       {record.endTime ? 'COMPLETED' : 'ON SITE'}
                     </span>
                   </td>
                 </tr>
               ))}
-              {filteredRecords.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-16 text-center text-gray-400 font-medium italic">
-                    No activity records found for this selection.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>

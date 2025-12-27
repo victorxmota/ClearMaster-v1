@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from './types';
 import { auth } from './services/firebase';
-import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Agenda } from './pages/Agenda';
@@ -11,6 +9,7 @@ import { CheckIn } from './pages/CheckIn';
 import { Reports } from './pages/Reports';
 import { Profile } from './pages/Profile';
 import { ShieldAlert } from 'lucide-react';
+import { AuthProvider, useAuth } from './AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode, allowedRoles?: UserRole[] }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -44,7 +43,13 @@ const App: React.FC = () => {
                 <ShieldAlert className="text-red-600 w-8 h-8" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Configuração Pendente</h1>
-            <p className="text-gray-600 mb-6">Erro na inicialização do Firebase.</p>
+            <p className="text-gray-600 mb-6">
+                O aplicativo não encontrou as chaves de API do Firebase.
+            </p>
+            <div className="text-left bg-slate-900 text-slate-50 p-4 rounded-lg text-sm overflow-x-auto font-mono mb-4">
+                <p className="opacity-50 mb-2">// Verifique as configurações do Firebase</p>
+                <p>Firebase services not initialized.</p>
+            </div>
         </div>
       </div>
     );
