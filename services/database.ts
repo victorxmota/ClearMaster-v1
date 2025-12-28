@@ -21,6 +21,9 @@ const SCHEDULES_COL = 'schedules';
 const OFFICES_COL = 'offices';
 const RECORDS_COL = 'records';
 
+/**
+ * Remove campos undefined de um objeto para evitar erros no Firestore
+ */
 const sanitizeData = (data: any) => {
   const clean: any = {};
   Object.keys(data).forEach(key => {
@@ -43,7 +46,8 @@ export const Database = {
     if (userSnap.exists()) {
       const existingData = userSnap.data();
       if (extraData && (Object.keys(extraData).length > 0)) {
-        await updateDoc(userRef, sanitizeData(extraData));
+        const cleanExtra = sanitizeData(extraData);
+        await updateDoc(userRef, cleanExtra);
         return { ...existingData, ...extraData } as User;
       }
       return existingData as User;
@@ -59,11 +63,6 @@ export const Database = {
       await setDoc(userRef, sanitizeData(newUser));
       return newUser;
     }
-  },
-
-  updateUser: async (userId: string, data: Partial<User>) => {
-    const userRef = doc(db, USERS_COL, userId);
-    await updateDoc(userRef, sanitizeData(data));
   },
 
   getAllUsers: async (): Promise<User[]> => {
@@ -124,9 +123,44 @@ export const Database = {
     if (photoFile) {
         photoUrl = await Database.uploadFile(photoFile, `shifts/${record.userId}/start_${Date.now()}`);
     }
-    const finalData = sanitizeData({ ...record, photoUrl });
+    
+    const finalData = sanitizeData({
+      ...record,
+      photoUrl,
+      isPaused: false,
+      totalPausedMs: 0
+    });
+
     const docRef = await addDoc(collection(db, RECORDS_COL), finalData);
     return { ...finalData, id: docRef.id };
+  },
+
+  togglePause: async (record: TimeRecord): Promise<TimeRecord> => {
+    const docRef = doc(db, RECORDS_COL, record.id);
+    const now = new Date().toISOString();
+    let updates: Partial<TimeRecord> = {};
+
+    if (record.isPaused) {
+      // Resume: Calculate how long we were paused and add to total
+      const pausedAt = new Date(record.pausedAt!).getTime();
+      const currentPauseDuration = Date.now() - pausedAt;
+      const totalPausedMs = (record.totalPausedMs || 0) + currentPauseDuration;
+      
+      updates = {
+        isPaused: false,
+        pausedAt: undefined,
+        totalPausedMs: totalPausedMs
+      };
+    } else {
+      // Pause: Mark the current time
+      updates = {
+        isPaused: true,
+        pausedAt: now
+      };
+    }
+
+    await updateDoc(docRef, sanitizeData(updates));
+    return { ...record, ...updates };
   },
 
   endShift: async (recordId: string, updates: Partial<TimeRecord>, photoFile?: File) => {
