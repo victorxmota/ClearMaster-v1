@@ -1,12 +1,13 @@
 
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase';
 import { Database } from '../services/database';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { UserPlus, LogIn, Mail, Lock, User as UserIcon, Phone, CreditCard } from 'lucide-react';
+import { UserPlus, LogIn, Mail, Lock, User as UserIcon, Phone, CreditCard, Shield } from 'lucide-react';
+
+const ADMIN_EMAIL = 'adminreports@downeycleaning.ie';
 
 export const Login: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -33,6 +34,12 @@ export const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAdminAccess = () => {
+    setEmail(ADMIN_EMAIL);
+    setIsRegistering(false);
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +77,7 @@ export const Login: React.FC = () => {
     <div className="min-h-screen bg-brand-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-brand-100">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-brand-600">Downey Cleaning</h1>
+          <h1 className="text-3xl font-bold text-brand-600 tracking-tight">Downey Cleaning</h1>
           <p className="text-gray-500 mt-2">
             {isRegistering ? 'Create your professional account' : 'Professional Service Management'}
           </p>
@@ -142,7 +149,7 @@ export const Login: React.FC = () => {
             type="submit" 
             fullWidth 
             disabled={loading}
-            className="mt-2"
+            className="mt-2 h-12 text-lg font-bold shadow-md"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full mr-2"></div>
@@ -158,26 +165,38 @@ export const Login: React.FC = () => {
             <div className="w-full border-t border-gray-200"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-400">Or continue with</span>
+            <span className="px-2 bg-white text-gray-400">Alternative Access</span>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center bg-white border border-gray-300 rounded-lg p-3 text-gray-700 hover:bg-gray-50 hover:shadow-sm transition-all shadow-sm font-medium disabled:opacity-50"
-        >
-          <img 
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-            alt="Google" 
-            className="w-6 h-6 mr-3"
-          />
-          Google Workspace
-        </button>
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full flex items-center justify-center bg-white border border-gray-300 rounded-lg p-3 text-gray-700 hover:bg-gray-50 hover:shadow-sm transition-all shadow-sm font-medium disabled:opacity-50"
+          >
+            <img 
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+              alt="Google" 
+              className="w-6 h-6 mr-3"
+            />
+            Google Workspace
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAdminAccess}
+            disabled={loading}
+            className="w-full flex items-center justify-center bg-brand-900 text-white rounded-lg p-3 hover:bg-black transition-all shadow-sm font-bold group"
+          >
+            <Shield size={20} className="mr-3 text-brand-500 group-hover:scale-110 transition-transform" />
+            Admin Portal Access
+          </button>
+        </div>
 
         {error && (
-          <div className="mt-6 bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-100 animate-pulse">
+          <div className="mt-6 bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-100 animate-shake">
             {error}
           </div>
         )}
@@ -189,14 +208,14 @@ export const Login: React.FC = () => {
               setIsRegistering(!isRegistering);
               setError('');
             }}
-            className="text-brand-600 hover:text-brand-700 font-medium text-sm transition-colors"
+            className="text-brand-600 hover:text-brand-700 font-bold text-sm transition-colors"
           >
             {isRegistering ? 'Already have an account? Sign in' : 'Don\'t have an account? Create one'}
           </button>
         </div>
         
-        <div className="text-center text-xs text-gray-400 mt-6 pt-6 border-t">
-          <p>Access restricted to Downey Cleaning authorized personnel.</p>
+        <div className="text-center text-[10px] text-gray-400 mt-6 pt-6 border-t font-bold uppercase tracking-widest">
+          <p>Restricted to Downey Cleaning personnel.</p>
         </div>
       </div>
     </div>

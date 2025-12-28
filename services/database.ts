@@ -21,6 +21,8 @@ const SCHEDULES_COL = 'schedules';
 const OFFICES_COL = 'offices';
 const RECORDS_COL = 'records';
 
+const ADMIN_EMAIL = 'adminreports@downeycleaning.ie';
+
 /**
  * Remove campos undefined de um objeto para evitar erros no Firestore
  */
@@ -42,21 +44,31 @@ export const Database = {
   syncUser: async (firebaseUser: FirebaseUser, extraData?: Partial<User>): Promise<User> => {
     const userRef = doc(db, USERS_COL, firebaseUser.uid);
     const userSnap = await getDoc(userRef);
+    
+    // Check if this is the system admin email
+    const isSystemAdmin = firebaseUser.email === ADMIN_EMAIL;
 
     if (userSnap.exists()) {
-      const existingData = userSnap.data();
+      const existingData = userSnap.data() as User;
+      
+      // If user logs in with admin email but role is not admin, update it
+      if (isSystemAdmin && existingData.role !== UserRole.ADMIN) {
+        await updateDoc(userRef, { role: UserRole.ADMIN });
+        return { ...existingData, role: UserRole.ADMIN };
+      }
+
       if (extraData && (Object.keys(extraData).length > 0)) {
         const cleanExtra = sanitizeData(extraData);
         await updateDoc(userRef, cleanExtra);
         return { ...existingData, ...extraData } as User;
       }
-      return existingData as User;
+      return existingData;
     } else {
       const newUser: User = {
         id: firebaseUser.uid,
-        name: extraData?.name || firebaseUser.displayName || 'User',
+        name: extraData?.name || firebaseUser.displayName || (isSystemAdmin ? 'System Admin' : 'User'),
         email: firebaseUser.email || '',
-        role: extraData?.role || UserRole.EMPLOYEE,
+        role: isSystemAdmin ? UserRole.ADMIN : (extraData?.role || UserRole.EMPLOYEE),
         pps: extraData?.pps || '',
         phone: extraData?.phone || '',
       };
@@ -141,7 +153,6 @@ export const Database = {
     let updates: Partial<TimeRecord> = {};
 
     if (record.isPaused) {
-      // Resume: Calculate how long we were paused and add to total
       const pausedAt = new Date(record.pausedAt!).getTime();
       const currentPauseDuration = Date.now() - pausedAt;
       const totalPausedMs = (record.totalPausedMs || 0) + currentPauseDuration;
@@ -152,7 +163,6 @@ export const Database = {
         totalPausedMs: totalPausedMs
       };
     } else {
-      // Pause: Mark the current time
       updates = {
         isPaused: true,
         pausedAt: now
