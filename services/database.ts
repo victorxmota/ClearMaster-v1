@@ -9,7 +9,8 @@ import {
   updateDoc, 
   deleteDoc, 
   query, 
-  where 
+  where,
+  limit
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
@@ -23,9 +24,6 @@ const RECORDS_COL = 'records';
 
 const ADMIN_EMAIL = 'adminreports@downeycleaning.ie';
 
-/**
- * Remove campos undefined de um objeto para evitar erros no Firestore
- */
 const sanitizeData = (data: any) => {
   const clean: any = {};
   Object.keys(data).forEach(key => {
@@ -44,29 +42,19 @@ export const Database = {
   syncUser: async (firebaseUser: FirebaseUser, extraData?: Partial<User>): Promise<User> => {
     const userRef = doc(db, USERS_COL, firebaseUser.uid);
     const userSnap = await getDoc(userRef);
-    
-    // Check if this is the system admin email
     const isSystemAdmin = firebaseUser.email === ADMIN_EMAIL;
 
     if (userSnap.exists()) {
       const existingData = userSnap.data() as User;
-      
-      // If user logs in with admin email but role is not admin, update it
       if (isSystemAdmin && existingData.role !== UserRole.ADMIN) {
         await updateDoc(userRef, { role: UserRole.ADMIN });
         return { ...existingData, role: UserRole.ADMIN };
-      }
-
-      if (extraData && (Object.keys(extraData).length > 0)) {
-        const cleanExtra = sanitizeData(extraData);
-        await updateDoc(userRef, cleanExtra);
-        return { ...existingData, ...extraData } as User;
       }
       return existingData;
     } else {
       const newUser: User = {
         id: firebaseUser.uid,
-        name: extraData?.name || firebaseUser.displayName || (isSystemAdmin ? 'System Admin' : 'User'),
+        name: extraData?.name || firebaseUser.displayName || (isSystemAdmin ? 'System Admin' : 'New User'),
         email: firebaseUser.email || '',
         role: isSystemAdmin ? UserRole.ADMIN : (extraData?.role || UserRole.EMPLOYEE),
         pps: extraData?.pps || '',
@@ -75,6 +63,25 @@ export const Database = {
       await setDoc(userRef, sanitizeData(newUser));
       return newUser;
     }
+  },
+
+  updateUser: async (userId: string, updates: Partial<User>): Promise<void> => {
+    const userRef = doc(db, USERS_COL, userId);
+    await updateDoc(userRef, sanitizeData(updates));
+  },
+
+  deleteUser: async (userId: string): Promise<void> => {
+    const userRef = doc(db, USERS_COL, userId);
+    await deleteDoc(userRef);
+  },
+
+  getUserByAccountId: async (accountId: string): Promise<User | null> => {
+    const userRef = doc(db, USERS_COL, accountId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      return userSnap.data() as User;
+    }
+    return null;
   },
 
   getAllUsers: async (): Promise<User[]> => {
@@ -135,14 +142,7 @@ export const Database = {
     if (photoFile) {
         photoUrl = await Database.uploadFile(photoFile, `shifts/${record.userId}/start_${Date.now()}`);
     }
-    
-    const finalData = sanitizeData({
-      ...record,
-      photoUrl,
-      isPaused: false,
-      totalPausedMs: 0
-    });
-
+    const finalData = sanitizeData({ ...record, photoUrl, isPaused: false, totalPausedMs: 0 });
     const docRef = await addDoc(collection(db, RECORDS_COL), finalData);
     return { ...finalData, id: docRef.id };
   },
@@ -151,24 +151,14 @@ export const Database = {
     const docRef = doc(db, RECORDS_COL, record.id);
     const now = new Date().toISOString();
     let updates: Partial<TimeRecord> = {};
-
     if (record.isPaused) {
       const pausedAt = new Date(record.pausedAt!).getTime();
       const currentPauseDuration = Date.now() - pausedAt;
       const totalPausedMs = (record.totalPausedMs || 0) + currentPauseDuration;
-      
-      updates = {
-        isPaused: false,
-        pausedAt: undefined,
-        totalPausedMs: totalPausedMs
-      };
+      updates = { isPaused: false, pausedAt: undefined, totalPausedMs: totalPausedMs };
     } else {
-      updates = {
-        isPaused: true,
-        pausedAt: now
-      };
+      updates = { isPaused: true, pausedAt: now };
     }
-
     await updateDoc(docRef, sanitizeData(updates));
     return { ...record, ...updates };
   },
