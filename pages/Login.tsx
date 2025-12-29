@@ -54,7 +54,7 @@ export const Login: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-100 rounded-full mb-4">
             <ShieldCheck className="text-brand-600 w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-black text-brand-900 tracking-tight">Downey Cleaning</h1>
+          <h1 className="text-3xl font-black text-brand-900 tracking-tight">Downey Cleaning Services</h1>
           <p className="text-gray-400 mt-2 font-medium">Professional Access Portal</p>
         </div>
 
@@ -62,7 +62,7 @@ export const Login: React.FC = () => {
           <div className="relative">
             <Input 
               label="Email or Account ID" 
-              placeholder="name@company.com or 12345" 
+              placeholder="name@cdowneycleaning.ie" 
               value={identifier} 
               onChange={(e) => setIdentifier(e.target.value)} 
               required
