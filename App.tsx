@@ -60,9 +60,9 @@ const App: React.FC = () => {
             <div className="mx-auto bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <ShieldAlert className="text-red-600 w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Configuração Pendente</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Pending Configuration</h1>
             <p className="text-gray-600 mb-6">
-                O aplicativo não encontrou as chaves de API do Firebase.
+                The application could not find the Firebase API keys.
             </p>
         </div>
       </div>
