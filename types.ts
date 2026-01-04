@@ -14,6 +14,17 @@ export interface User {
   password?: string;
 }
 
+export interface AppNotification {
+  id: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string; // 'all' para todos ou ID do usuário específico
+  title: string;
+  message: string;
+  createdAt: string;
+  readBy: string[]; // Lista de IDs de usuários que leram
+}
+
 export interface ScheduleItem {
   id: string;
   userId: string;
@@ -85,17 +96,17 @@ export interface TimeRecord {
   scheduleId?: string;
   locationName: string;
   startTime: string;
-  endTime?: string;
+  endTime?: string | null;
   date: string;
   safetyChecklist: SafetyChecklist;
-  photoUrl?: string;
-  endPhotoUrl?: string;
+  photoUrl?: string | null;
+  endPhotoUrl?: string | null;
   startLocation?: GeoLocation;
   endLocation?: GeoLocation;
   notes?: string;
   // Pause features
   isPaused?: boolean;
-  pausedAt?: string;
+  pausedAt?: string | null;
   totalPausedMs?: number;
 }
 

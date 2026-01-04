@@ -13,6 +13,7 @@ import { Reports } from './pages/Reports';
 import { Profile } from './pages/Profile';
 import { Users } from './pages/Users';
 import { Dashboard } from './pages/Dashboard';
+import { Notifications } from './pages/Notifications';
 import { ShieldAlert } from 'lucide-react';
 
 interface AuthContextType {
@@ -111,6 +112,7 @@ const App: React.FC = () => {
           <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
           <Route path="/check-in" element={<ProtectedRoute allowedRoles={[UserRole.EMPLOYEE]}><CheckIn /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><Users /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
