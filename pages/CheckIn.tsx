@@ -330,7 +330,7 @@ export const CheckIn: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <ShieldCheck className="text-brand-600" />
-            Active Safety Plan
+            SAFETY PLAN OF ACTION
           </h2>
           <p className="text-gray-500 text-sm italic mt-1">GPS is mandatory to register your service.</p>
         </div>
