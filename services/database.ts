@@ -1,7 +1,23 @@
 
-// Using compat layer to resolve "no exported member" errors
-import firebase from "firebase/compat/app";
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where,
+  limit,
+  arrayUnion,
+  writeBatch,
+  FieldValue
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
+import type { FirebaseUser } from "./firebase";
 import { User, UserRole, ScheduleItem, TimeRecord, Office, AppNotification } from "../types";
 
 const USERS_COL = 'users';
@@ -35,16 +51,15 @@ const sanitizeData = (data: any) => {
 };
 
 export const Database = {
-  // Sync user data using compat doc and get methods
-  syncUser: async (firebaseUser: any, extraData?: Partial<User>): Promise<User> => {
-    const userRef = db.collection(USERS_COL).doc(firebaseUser.uid);
-    const userSnap = await userRef.get();
+  syncUser: async (firebaseUser: FirebaseUser, extraData?: Partial<User>): Promise<User> => {
+    const userRef = doc(db, USERS_COL, firebaseUser.uid);
+    const userSnap = await getDoc(userRef);
     const isSystemAdmin = firebaseUser.email === ADMIN_EMAIL;
 
-    if (userSnap.exists) {
+    if (userSnap.exists()) {
       const existingData = userSnap.data() as User;
       if (isSystemAdmin && existingData.role !== UserRole.ADMIN) {
-        await userRef.update({ role: UserRole.ADMIN });
+        await updateDoc(userRef, { role: UserRole.ADMIN });
         return { ...existingData, role: UserRole.ADMIN, id: firebaseUser.uid };
       }
       return { ...existingData, id: firebaseUser.uid };
@@ -57,50 +72,54 @@ export const Database = {
         pps: extraData?.pps || '',
         phone: extraData?.phone || '',
       };
-      await userRef.set(sanitizeData(newUser));
+      await setDoc(userRef, sanitizeData(newUser));
       return newUser;
     }
   },
 
   updateUser: async (userId: string, updates: Partial<User>): Promise<void> => {
-    await db.collection(USERS_COL).doc(userId).update(sanitizeData(updates));
+    const userRef = doc(db, USERS_COL, userId);
+    await updateDoc(userRef, sanitizeData(updates));
   },
 
   deleteUser: async (userId: string): Promise<void> => {
     try {
-      const batch = db.batch();
+      const batch = writeBatch(db);
       
-      // 1. Delete user document
-      const userRef = db.collection(USERS_COL).doc(userId);
+      // 1. Deletar documento do usuário
+      const userRef = doc(db, USERS_COL, userId);
       batch.delete(userRef);
 
-      // 2. Delete associated schedules using compat where and get
-      const schedulesSnap = await db.collection(SCHEDULES_COL).where("userId", "==", userId).get();
+      // 2. Deletar agendas associadas
+      const schedulesQuery = query(collection(db, SCHEDULES_COL), where("userId", "==", userId));
+      const schedulesSnap = await getDocs(schedulesQuery);
       schedulesSnap.forEach((d) => batch.delete(d.ref));
 
-      // 3. Delete associated records
-      const recordsSnap = await db.collection(RECORDS_COL).where("userId", "==", userId).get();
+      // 3. Deletar registros de tempo associados
+      const recordsQuery = query(collection(db, RECORDS_COL), where("userId", "==", userId));
+      const recordsSnap = await getDocs(recordsQuery);
       recordsSnap.forEach((d) => batch.delete(d.ref));
 
-      // Commit all deletions
       await batch.commit();
-      console.log(`User ${userId} and related data deleted successfully.`);
+      console.log(`Usuário ${userId} e dados relacionados removidos com sucesso.`);
     } catch (error) {
-      console.error("Error in Database.deleteUser:", error);
+      console.error("Erro em Database.deleteUser:", error);
       throw error;
     }
   },
 
   getUserByAccountId: async (accountId: string): Promise<User | null> => {
-    const userSnap = await db.collection(USERS_COL).doc(accountId).get();
-    if (userSnap.exists) {
+    const userRef = doc(db, USERS_COL, accountId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
       return { ...userSnap.data(), id: userSnap.id } as User;
     }
     return null;
   },
 
   getAllUsers: async (): Promise<User[]> => {
-    const querySnapshot = await db.collection(USERS_COL).get();
+    const q = query(collection(db, USERS_COL));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
       ...doc.data(),
       id: doc.id
@@ -119,7 +138,7 @@ export const Database = {
         readBy: []
       };
 
-      const docRef = await db.collection(NOTIFICATIONS_COL).add(dataToSave);
+      const docRef = await addDoc(collection(db, NOTIFICATIONS_COL), dataToSave);
       notifyNotificationChange();
       return docRef;
     } catch (error: any) {
@@ -131,10 +150,12 @@ export const Database = {
   getNotificationsForUser: async (userId: string): Promise<AppNotification[]> => {
     if (!userId) return [];
     try {
-      const querySnapshot = await db.collection(NOTIFICATIONS_COL)
-        .where("recipientId", "in", [userId, "all"])
-        .limit(50)
-        .get();
+      const q = query(
+        collection(db, NOTIFICATIONS_COL), 
+        where("recipientId", "in", [userId, "all"]),
+        limit(50)
+      );
+      const querySnapshot = await getDocs(q);
       return querySnapshot.docs
         .map(doc => ({ ...doc.data(), id: doc.id } as AppNotification))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -145,10 +166,12 @@ export const Database = {
 
   getSentNotifications: async (adminId: string): Promise<AppNotification[]> => {
     try {
-      const querySnapshot = await db.collection(NOTIFICATIONS_COL)
-        .where("senderId", "==", adminId)
-        .limit(50)
-        .get();
+      const q = query(
+        collection(db, NOTIFICATIONS_COL),
+        where("senderId", "==", adminId),
+        limit(50)
+      );
+      const querySnapshot = await getDocs(q);
       return querySnapshot.docs
         .map(doc => ({ ...doc.data(), id: doc.id } as AppNotification))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -160,53 +183,56 @@ export const Database = {
   markNotificationAsRead: async (notificationId: string, userId: string) => {
     if (!userId || !notificationId) return;
     try {
-      await db.collection(NOTIFICATIONS_COL).doc(notificationId).update({
-        readBy: firebase.firestore.FieldValue.arrayUnion(userId)
-      });
+      const docRef = doc(db, NOTIFICATIONS_COL, notificationId);
+      await updateDoc(docRef, { readBy: arrayUnion(userId) });
       notifyNotificationChange();
     } catch (error) {}
   },
 
   deleteNotification: async (notificationId: string): Promise<void> => {
-    await db.collection(NOTIFICATIONS_COL).doc(notificationId).delete();
+    await deleteDoc(doc(db, NOTIFICATIONS_COL, notificationId));
     notifyNotificationChange();
   },
 
   getOffices: async (): Promise<Office[]> => {
-    const querySnapshot = await db.collection(OFFICES_COL).get();
+    const q = query(collection(db, OFFICES_COL));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Office));
   },
 
   addOffice: async (office: Omit<Office, 'id'>): Promise<void> => {
-    await db.collection(OFFICES_COL).add(sanitizeData(office));
+    await addDoc(collection(db, OFFICES_COL), sanitizeData(office));
   },
 
   deleteOffice: async (id: string): Promise<void> => {
-    await db.collection(OFFICES_COL).doc(id).delete();
+    await deleteDoc(doc(db, OFFICES_COL, id));
   },
 
   getSchedulesByUser: async (userId: string): Promise<ScheduleItem[]> => {
-    const querySnapshot = await db.collection(SCHEDULES_COL).where("userId", "==", userId).get();
+    const q = query(collection(db, SCHEDULES_COL), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ScheduleItem));
   },
 
   addSchedule: async (schedule: Omit<ScheduleItem, 'id'>): Promise<void> => {
-    await db.collection(SCHEDULES_COL).add(sanitizeData(schedule));
+    await addDoc(collection(db, SCHEDULES_COL), sanitizeData(schedule));
   },
 
   updateSchedule: async (id: string, updates: Partial<ScheduleItem>): Promise<void> => {
-    await db.collection(SCHEDULES_COL).doc(id).update(sanitizeData(updates));
+    await updateDoc(doc(db, SCHEDULES_COL, id), sanitizeData(updates));
   },
 
   deleteSchedule: async (id: string): Promise<void> => {
-    await db.collection(SCHEDULES_COL).doc(id).delete();
+    await deleteDoc(doc(db, SCHEDULES_COL, id));
   },
 
   getActiveSession: async (userId: string): Promise<TimeRecord | null> => {
-    const querySnapshot = await db.collection(RECORDS_COL)
-      .where("userId", "==", userId)
-      .where("endTime", "==", null)
-      .get();
+    const q = query(
+      collection(db, RECORDS_COL), 
+      where("userId", "==", userId), 
+      where("endTime", "==", null)
+    );
+    const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       return { ...querySnapshot.docs[0].data(), id: querySnapshot.docs[0].id } as TimeRecord;
     }
@@ -216,12 +242,12 @@ export const Database = {
   startShift: async (record: Omit<TimeRecord, 'id' | 'photoUrl'>, photo?: File): Promise<TimeRecord> => {
     let photoUrl = "";
     if (photo) {
-      const storageRef = storage.ref(`shifts/${Date.now()}_${photo.name}`);
-      await storageRef.put(photo);
-      photoUrl = await storageRef.getDownloadURL();
+      const storageRef = ref(storage, `shifts/${Date.now()}_${photo.name}`);
+      await uploadBytes(storageRef, photo);
+      photoUrl = await getDownloadURL(storageRef);
     }
     const data = { ...record, photoUrl, endTime: null, totalPausedMs: 0, isPaused: false };
-    const docRef = await db.collection(RECORDS_COL).add(sanitizeData(data));
+    const docRef = await addDoc(collection(db, RECORDS_COL), sanitizeData(data));
     return { ...data, id: docRef.id } as TimeRecord;
   },
 
@@ -239,46 +265,46 @@ export const Database = {
     } else {
       updates = { isPaused: true, pausedAt: now };
     }
-    await db.collection(RECORDS_COL).doc(session.id).update(updates);
+    await updateDoc(doc(db, RECORDS_COL, session.id), updates);
     return { ...session, ...updates };
   },
 
   endShift: async (id: string, updates: Partial<TimeRecord>, photo?: File): Promise<void> => {
     let endPhotoUrl = "";
     if (photo) {
-      const storageRef = storage.ref(`shifts/end_${Date.now()}_${photo.name}`);
-      await storageRef.put(photo);
-      endPhotoUrl = await storageRef.getDownloadURL();
+      const storageRef = ref(storage, `shifts/end_${Date.now()}_${photo.name}`);
+      await uploadBytes(storageRef, photo);
+      endPhotoUrl = await getDownloadURL(storageRef);
     }
     const finalUpdates = { ...updates, endPhotoUrl, isPaused: false };
-    await db.collection(RECORDS_COL).doc(id).update(sanitizeData(finalUpdates));
+    await updateDoc(doc(db, RECORDS_COL, id), sanitizeData(finalUpdates));
   },
 
   getAllRecords: async (): Promise<TimeRecord[]> => {
-    const querySnapshot = await db.collection(RECORDS_COL).get();
-    // Client-side sorting to avoid index requirement
+    const q = query(collection(db, RECORDS_COL));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs
       .map(doc => ({ ...doc.data(), id: doc.id } as TimeRecord))
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
   },
 
   getRecordsByUser: async (userId: string): Promise<TimeRecord[]> => {
-    const querySnapshot = await db.collection(RECORDS_COL).where("userId", "==", userId).get();
-    // Client-side sorting to avoid index requirement
+    const q = query(collection(db, RECORDS_COL), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs
       .map(doc => ({ ...doc.data(), id: doc.id } as TimeRecord))
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
   },
 
   updateRecord: async (id: string, updates: Partial<TimeRecord>): Promise<void> => {
-    await db.collection(RECORDS_COL).doc(id).update(sanitizeData(updates));
+    await updateDoc(doc(db, RECORDS_COL, id), sanitizeData(updates));
   },
 
   deleteRecord: async (id: string): Promise<void> => {
-    await db.collection(RECORDS_COL).doc(id).delete();
+    await deleteDoc(doc(db, RECORDS_COL, id));
   },
 
   addRecord: async (record: Omit<TimeRecord, 'id'>): Promise<void> => {
-    await db.collection(RECORDS_COL).add(sanitizeData(record));
+    await addDoc(collection(db, RECORDS_COL), sanitizeData(record));
   }
 };

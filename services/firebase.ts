@@ -1,20 +1,19 @@
-
-import { initializeApp, FirebaseApp } from "firebase/app";
+import { initializeApp } from "firebase/app";
 import { 
   getAuth, 
-  Auth,
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  updateEmail as updateAuthEmail,
-  updatePassword as updateAuthPassword,
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
   sendPasswordResetEmail,
-  User as FirebaseUserInstance
+  updateEmail,
+  updatePassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  User as FirebaseUser
 } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCs1NAMdvtuiWzbYMohY0aZa2AiS9z8uNw",
@@ -26,10 +25,11 @@ const firebaseConfig = {
   measurementId: "G-MMZD70R02H"
 };
 
-const app: FirebaseApp = initializeApp(firebaseConfig);
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
+// Initialize Firebase with modular SDK
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -55,12 +55,12 @@ export const registerWithEmail = async (email: string, pass: string) => {
 
 export const updateUserAuthEmail = async (newEmail: string) => {
   if (!auth.currentUser) throw new Error("No user logged in");
-  await updateAuthEmail(auth.currentUser, newEmail);
+  await updateEmail(auth.currentUser, newEmail);
 };
 
 export const updateUserAuthPassword = async (newPassword: string) => {
   if (!auth.currentUser) throw new Error("No user logged in");
-  await updateAuthPassword(auth.currentUser, newPassword);
+  await updatePassword(auth.currentUser, newPassword);
 };
 
 export const resetUserPassword = async (email: string) => {
@@ -75,5 +75,5 @@ export const logoutFirebase = async () => {
   }
 };
 
-export { auth, db, storage };
-export type FirebaseUser = FirebaseUserInstance;
+export { auth, db, storage, onAuthStateChanged };
+export type { FirebaseUser };
