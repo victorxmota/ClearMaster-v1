@@ -125,13 +125,18 @@ export const Users: React.FC = () => {
   const handleDeleteUser = async (user: User) => {
     if (!window.confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) return;
     
+    setIsLoading(true);
     try {
       await Database.deleteUser(user.id);
-      alert('User removed from database.');
-      loadUsers();
-    } catch (err) {
+      alert('User removed from database successfully.');
+      await loadUsers();
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to delete user.');
+      alert('Failed to delete user from database: ' + (err.message || 'Check your permissions.'));
+      // Reload to ensure UI is in sync with DB
+      loadUsers();
+    } finally {
+      setIsLoading(false);
     }
   };
 
